@@ -56,13 +56,18 @@ class LiteI2CPHYCore(LiteXModule):
 
         self.speed_mode      = speed_mode = CSRStorage(2, reset=0)
 
+        i2c_speed_mode_delayed = Signal().like(i2c_speed_mode)
+
         # # #
 
         # Resynchronize CSR Clk Divisor to LiteI2C Clk Domain.
         self.submodules += ResyncReg(speed_mode.storage, i2c_speed_mode, clock_domain)
 
+        # Only update speed mode when not active.
+        self.sync += If(~active, i2c_speed_mode_delayed.eq(i2c_speed_mode))
+
         # Clock Generator.
-        self.clkgen = clkgen = LiteI2CClkGen(pads, i2c_speed_mode, sys_clk_freq)
+        self.clkgen = clkgen = LiteI2CClkGen(pads, i2c_speed_mode_delayed, sys_clk_freq)
 
         nack = Signal()
 
