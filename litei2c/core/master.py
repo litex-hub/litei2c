@@ -32,16 +32,16 @@ class LiteI2CMaster(LiteXModule):
     sink : Endpoint(i2c_core2phy_layout), in
         Control stream.
 
-    enable : Signal(), out
+    active : Signal(), out
         Enable signal.
 
     """
     def __init__(self, tx_fifo_depth=1, rx_fifo_depth=1):
         self.sink   = stream.Endpoint(i2c_phy2core_layout)
         self.source = stream.Endpoint(i2c_core2phy_layout)
-        self.enable = Signal()
+        self.active = Signal()
 
-        self._enable = CSRStorage()
+        self._active = CSRStorage()
         self._settings = CSRStorage(fields=[
             CSRField("len_tx",   size=3, offset=0,  description="I2C tx Xfer length (in bytes). Set to a value greater then 4 to anounce more data has to be transmitted."),
             CSRField("len_rx",   size=3, offset=8,  description="I2C rx Xfer length (in bytes). Set to a value greater then 4 to anounce more data has to be received."),
@@ -64,7 +64,7 @@ class LiteI2CMaster(LiteXModule):
         self.comb += tx_fifo.source.connect(self.source)
 
         # I2C Enable.
-        self.comb += self.enable.eq(self._enable.storage)
+        self.comb += self.active.eq(self._active.storage)
 
         # I2C TX.
         self.comb += [

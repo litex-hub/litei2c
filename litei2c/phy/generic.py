@@ -42,8 +42,8 @@ class LiteI2CPHYCore(LiteXModule):
     sink : Endpoint(i2c_core2phy_layout), in
         Control stream.
 
-    enable : Signal(), in
-        Flash enable signal.
+    active : Signal(), in
+        Flash active signal.
 
     speed_mode : CSRStorage
         Register which holds a clock divisor value applied to clkgen.
@@ -51,7 +51,7 @@ class LiteI2CPHYCore(LiteXModule):
     def __init__(self, pads, clock_domain, sys_clk_freq):
         self.source           = source = stream.Endpoint(i2c_phy2core_layout)
         self.sink             = sink   = stream.Endpoint(i2c_core2phy_layout)
-        self.enable           = enable = Signal()
+        self.active           = active = Signal()
         self._i2c_speed_mode  = i2c_speed_mode = Signal(2)
 
         self.speed_mode      = speed_mode = CSRStorage(2, reset=0)
@@ -122,7 +122,7 @@ class LiteI2CPHYCore(LiteXModule):
             NextValue(nack, 0),
             NextValue(tx_done, 0),
             # Wait for CS and a CMD from the Core.
-            If(enable & sink.valid,
+            If(active & sink.valid,
                 # Start XFER.
                 NextState("START"),
             ),
@@ -294,7 +294,7 @@ class LiteI2CPHYCore(LiteXModule):
             clkgen.en.eq(0),
             clkgen.keep_low.eq(1),
             NextValue(tx_done, 0),
-            If(enable & sink.valid,
+            If(active & sink.valid,
                NextState("PRE-TX"),
             ),
         )
@@ -413,7 +413,7 @@ class LiteI2CPHYCore(LiteXModule):
             # Generate Clk.
             clkgen.en.eq(0),
             clkgen.keep_low.eq(1),
-            If(enable & sink.valid,
+            If(active & sink.valid,
                 NextState("PRE-RX"),
             ),
         )

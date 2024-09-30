@@ -43,11 +43,11 @@ class LiteI2CCrossbar(LiteXModule):
                 self.master.source.connect(self.tx_cdc.sink),
             ]
 
-        self.enable           = Signal()
-        self.user_enable      = []
+        self.active           = Signal()
+        self.user_active      = []
         self.user_request = []
 
-    def get_port(self, enable, request = None):
+    def get_port(self, active, request = None):
         user_port     = LiteI2CSlavePort()
         internal_port = LiteI2CSlavePort()
 
@@ -61,10 +61,10 @@ class LiteI2CCrossbar(LiteXModule):
 
         if request is None:
             request = Signal()
-            self.comb += request.eq(enable)
+            self.comb += request.eq(active)
 
         self.users.append(internal_port)
-        self.user_enable.append(self.enable.eq(enable))
+        self.user_active.append(self.active.eq(active))
         self.user_request.append(request)
 
         return user_port
@@ -93,5 +93,5 @@ class LiteI2CCrossbar(LiteXModule):
             self.master.sink.connect(self.rx_demux.sink),
             self.rx_demux.sel.eq(self.rr.grant),
 
-            Case(self.rr.grant, dict(enumerate(self.user_enable))),
+            Case(self.rr.grant, dict(enumerate(self.user_active))),
         ]

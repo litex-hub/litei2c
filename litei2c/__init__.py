@@ -22,7 +22,7 @@ class LiteI2CCore(Module):
     def __init__(self):
         self.source = stream.Endpoint(i2c_core2phy_layout)
         self.sink   = stream.Endpoint(i2c_phy2core_layout)
-        self.enable = Signal()
+        self.active = Signal()
 
 
 class LiteI2C(LiteXModule):
@@ -38,7 +38,7 @@ class LiteI2C(LiteXModule):
         Frequency of the system clock.
 
     phy : Module
-        Module or object that contains PHY stream interfaces and a enable signal to connect
+        Module or object that contains PHY stream interfaces and a active signal to connect
         the ``LiteI2C`` to. If not provided, it will be created automatically based on the pads.
     
     pads : Object
@@ -63,13 +63,13 @@ class LiteI2C(LiteXModule):
 
         self.crossbar = crossbar = LiteI2CCrossbar(clock_domain)
 
-        self.comb += phy.enable.eq(crossbar.enable)
+        self.comb += phy.active.eq(crossbar.active)
 
         if with_master:
             self.master = master = LiteI2CMaster(
                 tx_fifo_depth = i2c_master_tx_fifo_depth,
                 rx_fifo_depth = i2c_master_rx_fifo_depth)
-            port_master = crossbar.get_port(master.enable)
+            port_master = crossbar.get_port(master.active)
             self.comb += [
                 port_master.source.connect(master.sink),
                 master.source.connect(port_master.sink),
@@ -87,7 +87,7 @@ class LiteI2C(LiteXModule):
             ]
 
     def add_i2c_device(self, i2c_device):
-        port = self.crossbar.get_port(i2c_device.enable)
+        port = self.crossbar.get_port(i2c_device.active)
         self.comb += [
             port.source.connect(i2c_device.sink),
             i2c_device.source.connect(port.sink),
