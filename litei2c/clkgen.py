@@ -34,12 +34,6 @@ class LiteI2CClkGen(LiteXModule):
 
     Attributes
     ----------
-    posedge : Signal(), out
-        Outputs 1 when there is a rising edge on the generated clock, 0 otherwise.
-
-    negedge : Signal(), out
-        Outputs 1 when there is a falling edge on the generated clock, 0 otherwise.
-
     en : Signal(), in
         Clock enable input, output clock will be generated if set to 1, 0 resets the core.
 

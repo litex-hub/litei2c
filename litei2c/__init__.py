@@ -8,7 +8,6 @@ from migen import *
 
 from litex.gen import *
 
-from litex.soc.integration.doc import AutoDoc
 from litex.soc.interconnect import stream
 from litex.soc.interconnect.csr import *
 
