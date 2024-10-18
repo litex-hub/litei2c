@@ -205,8 +205,6 @@ class LiteI2CPHYCore(LiteXModule):
             )
         )
 
-
-
         fsm.act("PRE-TX",
             clkgen.en.eq(1),
             NextValue(sr_cnt, 0),
@@ -261,8 +259,6 @@ class LiteI2CPHYCore(LiteXModule):
                 ),
             ),
         )
-
-        fsm.act
 
         fsm.act("TX-BEFORE-NEXT",
             # Generate Clk.
@@ -464,6 +460,15 @@ class LiteI2CPHYCore(LiteXModule):
             source.valid.eq(1),
             source.last.eq(1),
             If(source.ready,
+                NextState("BUS-FREE"),
+            )
+        )
+
+        fsm.act("BUS-FREE",
+            If(~clkgen.rx,
+                clkgen.en.eq(1),
+                clkgen.suppress.eq(1),
+            ).Else(
                 NextState("WAIT-DATA"),
             )
         )

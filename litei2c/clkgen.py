@@ -45,12 +45,16 @@ class LiteI2CClkGen(LiteXModule):
 
     keep_low : Signal(), in
         Forces the clock to be low, when the clock is disabled.
+
+    suppress : Signal(), in
+        Disables the clock output.
     """
     def __init__(self, pads, i2c_speed_mode, sys_clk_freq):
         self.tx         = tx         = Signal()
         self.rx         = rx         = Signal()
         self.en         = en         = Signal()
         self.keep_low   = keep_low   = Signal()
+        self.suppress   = suppress   = Signal()
     
         cnt_width = bits_for(freq_to_div(sys_clk_freq, 100000))
     
@@ -93,8 +97,8 @@ class LiteI2CClkGen(LiteXModule):
 
         self.specials += SDRTristate(
             io = pads.scl,
-            o  = Signal(),      # I2C uses Pull-ups, only drive low.
-            oe = ~clk,          # Drive when scl is low.
-            i  = Signal(),      # Not used.
+            o  = Signal(),          # I2C uses Pull-ups, only drive low.
+            oe = ~clk & ~suppress,  # Drive when scl is low and not suppressed.
+            i  = Signal(),          # Not used.
         )
 
