@@ -465,10 +465,9 @@ class LiteI2CPHYCore(LiteXModule):
         )
 
         fsm.act("BUS-FREE",
-            If(~clkgen.rx,
-                clkgen.en.eq(1),
-                clkgen.suppress.eq(1),
-            ).Else(
+            clkgen.en.eq(1),
+            clkgen.suppress.eq(1),
+            If(clkgen.rx,
                 NextState("WAIT-DATA"),
             )
         )
