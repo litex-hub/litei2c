@@ -77,7 +77,7 @@ class LiteI2CPHYCore(LiteXModule):
         self.sda_oe = sda_oe = Signal()
         self.specials += SDRTristate(
             io = pads.sda,
-            o  = Signal(),          # I2C uses Pull-ups, only drive low.
+            o  = Constant(0),       # I2C uses Pull-ups, only drive low.
             oe = sda_oe & ~sda_o,   # Drive when oe and sda is low.
             i  = sda_i,
         )

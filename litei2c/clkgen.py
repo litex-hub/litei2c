@@ -97,7 +97,7 @@ class LiteI2CClkGen(LiteXModule):
 
         self.specials += SDRTristate(
             io = pads.scl,
-            o  = Signal(),          # I2C uses Pull-ups, only drive low.
+            o  = Constant(0),       # I2C uses Pull-ups, only drive low.
             oe = ~clk & ~suppress,  # Drive when scl is low and not suppressed.
             i  = Signal(),          # Not used.
         )
