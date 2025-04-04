@@ -95,10 +95,18 @@ class LiteI2CClkGen(LiteXModule):
             )
         ]
 
-        self.specials += SDRTristate(
-            io = pads.scl,
-            o  = Constant(0),       # I2C uses Pull-ups, only drive low.
-            oe = ~clk & ~suppress,  # Drive when scl is low and not suppressed.
-            i  = Signal(),          # Not used.
-        )
-
+        # SCL drive handling
+        if not (hasattr(pads, "scl_o") and hasattr(pads, "scl_oe")):
+            # Drive SCL through SDRSTristate.
+            self.specials += SDRTristate(
+                io = pads.scl,
+                o  = Constant(0),       # I2C uses Pull-ups, only drive low.
+                oe = ~clk & ~suppress,  # Drive when scl is low and not suppressed.
+                i  = Signal(),          # Not used.
+            )
+        else:
+            # Drive SCL O/OE directly.
+            self.comb += [
+                pads.scl_o.eq(0),                 # I2C uses Pull-ups, only drive low.
+                pads.scl_oe.eq(~clk & ~suppress), # Drive when scl is low and not suppressed.
+            ]
