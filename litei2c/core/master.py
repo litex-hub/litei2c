@@ -68,7 +68,7 @@ class LiteI2CMaster(LiteXModule):
 
         # I2C TX.
         self.comb += [
-            tx_fifo.sink.valid.eq(self._rxtx.re),
+            If(self._rxtx.re, tx_fifo.sink.valid.eq(1)),
             self._status.fields.tx_ready.eq(tx_fifo.sink.ready),
             tx_fifo.sink.data.eq(self._rxtx.r),
             tx_fifo.sink.addr.eq(self._addr.storage),
@@ -80,7 +80,7 @@ class LiteI2CMaster(LiteXModule):
 
         # I2C RX.
         self.comb += [
-            rx_fifo.source.ready.eq(self._rxtx.we),
+            If(self._rxtx.we, rx_fifo.source.ready.eq(1)),
             self._status.fields.rx_ready.eq(rx_fifo.source.valid),
             self._status.fields.nack.eq(rx_fifo.source.nack),
             self._status.fields.tx_unfinished.eq(rx_fifo.source.unfinished_tx),
