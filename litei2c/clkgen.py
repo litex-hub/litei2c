@@ -58,10 +58,10 @@ class LiteI2CClkGen(LiteXModule):
     
         cnt_width = bits_for(freq_to_div(sys_clk_freq, 100000))
     
-        div             = Signal(cnt_width)
-        cnt             = Signal(cnt_width)
-        sub_cnt         = Signal(2)
-        clk             = Signal(reset=1)
+        self.div     = div     = Signal(cnt_width)
+        self.cnt     = cnt     = Signal(cnt_width)
+        self.sub_cnt = sub_cnt = Signal(2)
+        self.clk     = clk     = Signal(reset=1)
 
         self.comb += [
             Case(i2c_speed_mode, {
