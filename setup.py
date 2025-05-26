@@ -8,7 +8,7 @@ with open("README.md", "r") as fp:
 
 setup(
     name                 = "litei2c",
-    version              = "2024.12",
+    version              = "2025.04",
     description          = "Small footprint and configurable I2C core",
     long_description=long_description,
     long_description_content_type="text/markdown",
