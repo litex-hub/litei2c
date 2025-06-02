@@ -25,6 +25,7 @@ class LiteI2CCore(Module):
 
 
 class LiteI2C(LiteXModule):
+    autocsr_exclude = {"ev"}
     """I2C Controller wrapper.
 
     The ``LiteI2C`` class provides a wrapper that can instantiate ``LiteI2CMaster`` and connect it to the PHY.
@@ -52,7 +53,7 @@ class LiteI2C(LiteXModule):
     """
 
     def __init__(self, sys_clk_freq, phy=None, pads=None, clock_domain="sys",
-        with_master=True, i2c_master_tx_fifo_depth=1, i2c_master_rx_fifo_depth=1):
+        with_master=True, i2c_master_tx_fifo_depth=1, i2c_master_rx_fifo_depth=1, with_irq = False):
 
         if phy is None:
             if pads is None:
@@ -67,12 +68,15 @@ class LiteI2C(LiteXModule):
         if with_master:
             self.master = master = LiteI2CMaster(
                 tx_fifo_depth = i2c_master_tx_fifo_depth,
-                rx_fifo_depth = i2c_master_rx_fifo_depth)
+                rx_fifo_depth = i2c_master_rx_fifo_depth,
+                with_irq = with_irq)
             port_master = crossbar.get_port(master.active)
             self.comb += [
                 port_master.source.connect(master.sink),
                 master.source.connect(port_master.sink),
             ]
+            if hasattr(master, "ev"):
+                self.ev = master.ev
 
         if clock_domain != "sys":
             self.comb += [

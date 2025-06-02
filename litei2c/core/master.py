@@ -10,6 +10,7 @@ from litex.gen import *
 
 from litex.soc.interconnect import stream
 from litex.soc.interconnect.csr import *
+from litex.soc.interconnect.csr_eventmanager import *
 
 from litei2c.common import *
 
@@ -36,7 +37,7 @@ class LiteI2CMaster(LiteXModule):
         Enable signal.
 
     """
-    def __init__(self, tx_fifo_depth=1, rx_fifo_depth=1):
+    def __init__(self, tx_fifo_depth=1, rx_fifo_depth=1, with_irq=False):
         self.sink   = stream.Endpoint(i2c_phy2core_layout)
         self.source = stream.Endpoint(i2c_core2phy_layout)
         self.active = Signal()
@@ -87,3 +88,12 @@ class LiteI2CMaster(LiteXModule):
             self._status.fields.rx_unfinished.eq(rx_fifo.source.unfinished_rx),
             self._rxtx.w.eq(rx_fifo.source.data),
         ]
+
+        if with_irq:
+            self.ev            = EventManager()
+            self.ev.rx_ready   = EventSourceProcess(edge="rising")
+            self.ev.finalize()
+
+            self.comb += [
+                self.ev.rx_ready.trigger.eq(rx_fifo.source.valid),
+            ]
