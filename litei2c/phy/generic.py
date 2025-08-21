@@ -116,10 +116,10 @@ class LiteI2CPHYCore(LiteXModule):
         self.sync += If(sr_out_load,
             sr_out.eq(sink.data << (len(sink.data) - len_tx_capped * 8)),
         )
-        self.sync += If(sr_out_shift, sr_out.eq(Cat(Signal(1), sr_out)))
+        self.sync += If(sr_out_shift, sr_out.eq(Cat(C(0,1), sr_out[:-1])))
 
         # Data In Shift.
-        self.sync += If(sr_in_shift, sr_in.eq(Cat(sda_i, sr_in)))
+        self.sync += If(sr_in_shift, sr_in.eq(Cat(sda_i, sr_in[:-1])))
 
         # FSM.
         self.fsm = fsm = FSM(reset_state="WAIT-DATA")
