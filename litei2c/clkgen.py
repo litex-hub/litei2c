@@ -108,7 +108,6 @@ class LiteI2CClkGen(LiteXModule):
                 io = pads.scl,
                 o  = self.scl_o,
                 oe = self.scl_oe,
-                i  = Signal(), # Not used.
             )
         else:
             # Drive SCL O/OE directly.
