@@ -272,9 +272,9 @@ class LiteI2CPHYCore(LiteXModule):
         fsm.act("TX-PRE-WAIT",
             # Generate Clk.
             clkgen.en.eq(1),
-            sink.ready.eq(1),
             If(clkgen.tx,
-               NextState("TX-WAIT-SEND-STATUS"),
+                sink.ready.eq(1),
+                NextState("TX-WAIT-SEND-STATUS"),
             ),
         )
 
