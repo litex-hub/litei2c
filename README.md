@@ -7,7 +7,7 @@
 
     Copyright (c) 2024, LiteI2C Developers
 ```
-[![](https://github.com/litex-hub/litei2c/workflows/ci/badge.svg)](https://github.com/litex-hub/litei2c/actions) ![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)
+[![](https://github.com/litex-hub/litei2c/workflows/ci/badge.svg)](https://github.com/litex-hub/litei2c/actions) ![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg) [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/litex-hub/litei2c)
 
 [> Intro
 --------
