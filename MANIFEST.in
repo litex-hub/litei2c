@@ -1,0 +1,7 @@
+graft litei2c
+
+include CONTRIBUTORS
+include LICENSE
+
+global-exclude *.py[cod]
+global-exclude __pycache__/*
