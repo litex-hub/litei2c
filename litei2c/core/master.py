@@ -69,9 +69,9 @@ class LiteI2CMaster(LiteXModule):
 
         # I2C TX.
         self.comb += [
-            If(self._rxtx.re, tx_fifo.sink.valid.eq(1)),
+            If(self._rxtx.wr_stb, tx_fifo.sink.valid.eq(1)),
             self._status.fields.tx_ready.eq(tx_fifo.sink.ready),
-            tx_fifo.sink.data.eq(self._rxtx.r),
+            tx_fifo.sink.data.eq(self._rxtx.wr_data),
             tx_fifo.sink.addr.eq(self._addr.storage),
             tx_fifo.sink.len_tx.eq(self._settings.fields.len_tx),
             tx_fifo.sink.len_rx.eq(self._settings.fields.len_rx),
@@ -81,12 +81,12 @@ class LiteI2CMaster(LiteXModule):
 
         # I2C RX.
         self.comb += [
-            If(self._rxtx.we, rx_fifo.source.ready.eq(1)),
+            If(self._rxtx.rd_stb, rx_fifo.source.ready.eq(1)),
             self._status.fields.rx_ready.eq(rx_fifo.source.valid),
             self._status.fields.nack.eq(rx_fifo.source.nack),
             self._status.fields.tx_unfinished.eq(rx_fifo.source.unfinished_tx),
             self._status.fields.rx_unfinished.eq(rx_fifo.source.unfinished_rx),
-            self._rxtx.w.eq(rx_fifo.source.data),
+            self._rxtx.rd_data.eq(rx_fifo.source.data),
         ]
 
         if with_irq:
