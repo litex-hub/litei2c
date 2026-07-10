@@ -55,6 +55,7 @@ class LiteI2CClkGen(LiteXModule):
         self.en         = en         = Signal()
         self.keep_low   = keep_low   = Signal()
         self.suppress   = suppress   = Signal()
+        self.scl_i      = scl_i      = Signal(reset=1)
     
         cnt_width = bits_for(freq_to_div(sys_clk_freq, 100000))
     
@@ -107,6 +108,7 @@ class LiteI2CClkGen(LiteXModule):
                 io = pads.scl,
                 o  = self.scl_o,
                 oe = self.scl_oe,
+                i  = scl_i,
             )
         else:
             # Drive SCL O/OE directly.
@@ -114,3 +116,5 @@ class LiteI2CClkGen(LiteXModule):
                 pads.scl_o.eq(self.scl_o),
                 pads.scl_oe.eq(self.scl_oe),
             ]
+            if hasattr(pads, "scl_i"):
+                self.comb += scl_i.eq(pads.scl_i)

@@ -73,14 +73,25 @@ class LiteI2CPHYCore(LiteXModule):
 
         # SDA
         self.sda_o = sda_o  = Signal()
-        self.sda_i = sda_i  = Signal()
+        self.sda_i = sda_i  = Signal(reset=1)
         self.sda_oe = sda_oe = Signal()
-        self.specials += SDRTristate(
-            io = pads.sda,
-            o  = Constant(0),       # I2C uses Pull-ups, only drive low.
-            oe = sda_oe & ~sda_o,   # Drive when oe and sda is low.
-            i  = sda_i,
-        )
+        if not (hasattr(pads, "sda_o") and hasattr(pads, "sda_oe")):
+            self.specials += SDRTristate(
+                io = pads.sda,
+                o  = Constant(0),       # I2C uses Pull-ups, only drive low.
+                oe = sda_oe & ~sda_o,   # Drive when oe and sda is low.
+                i  = sda_i,
+            )
+        else:
+            self.comb += [
+                pads.sda_o.eq(0),       # I2C uses Pull-ups, only drive low.
+                pads.sda_oe.eq(sda_oe & ~sda_o),
+            ]
+            if hasattr(pads, "sda_i"):
+                self.comb += sda_i.eq(pads.sda_i)
+
+        bus_free = Signal()
+        self.comb += bus_free.eq(clkgen.scl_i & sda_i)
 
         bytes_send = Signal(3)
         bytes_recv = Signal(3)
@@ -129,7 +140,12 @@ class LiteI2CPHYCore(LiteXModule):
             # Wait for CS and a CMD from the Core.
             If(active & sink.valid,
                 # Start XFER.
-                NextState("START"),
+                If(sink.recover | bus_free,
+                    NextState("START"),
+                ).Else(
+                    NextValue(nack, 1),
+                    NextState("XFER-END"),
+                )
             ),
         )
 
@@ -447,6 +463,7 @@ class LiteI2CPHYCore(LiteXModule):
             sink.ready.eq(1),
             sda_oe.eq(1),
             sda_o.eq(1),
+            NextValue(nack, nack | ~bus_free),
             # Send Status/Data to Core.
             NextState("SEND-STATUS-DATA"),
         )
