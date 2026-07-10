@@ -23,11 +23,23 @@ class _I2CPads:
 
 class TestLiteI2CPHY(unittest.TestCase):
     @staticmethod
-    def _run_address_only_transfer(sda_stuck_low=False, scl_stuck_low=False):
+    def _run_address_only_transfer(
+        sda_stuck_low    = False,
+        scl_stuck_low    = False,
+        sda_low_after_start = False,
+        sda_low_after_stop  = False,
+        scl_low_after_stop  = False,
+    ):
         pads = _I2CPads()
         dut  = LiteI2CPHYCore(pads, clock_domain="sys", sys_clk_freq=1e6)
+        start    = Signal()
         addr_ack = Signal()
-        dut.comb += addr_ack.eq(dut.fsm.ongoing("ADDR-ACK"))
+        stop     = Signal()
+        dut.comb += [
+            start.eq(dut.fsm.ongoing("START")),
+            addr_ack.eq(dut.fsm.ongoing("ADDR-ACK")),
+            stop.eq(dut.fsm.ongoing("STOP")),
+        ]
         nacks = []
 
         def host_gen():
@@ -47,9 +59,16 @@ class TestLiteI2CPHY(unittest.TestCase):
             yield dut.sink.valid.eq(0)
 
         def pads_gen():
+            started      = False
+            stop_started = False
             for _ in range(512):
-                yield pads.scl_i.eq(0 if scl_stuck_low else 1)
-                if sda_stuck_low:
+                if (yield start):
+                    started = True
+                if (yield stop):
+                    stop_started = True
+
+                yield pads.scl_i.eq(0 if (scl_stuck_low or (scl_low_after_stop and stop_started)) else 1)
+                if sda_stuck_low or (sda_low_after_start and started) or (sda_low_after_stop and stop_started):
                     yield pads.sda_i.eq(0)
                 elif (yield addr_ack):
                     yield pads.sda_i.eq(0)
@@ -70,6 +89,9 @@ class TestLiteI2CPHY(unittest.TestCase):
 
     def test_scl_stuck_low_reports_nack(self):
         self.assertEqual(self._run_address_only_transfer(scl_stuck_low=True), 1)
+
+    def test_sda_stuck_low_after_start_reports_nack(self):
+        self.assertEqual(self._run_address_only_transfer(sda_low_after_start=True), 1)
 
 
 if __name__ == "__main__":
