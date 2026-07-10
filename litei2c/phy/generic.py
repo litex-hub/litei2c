@@ -69,7 +69,8 @@ class LiteI2CPHYCore(LiteXModule):
         # Clock Generator.
         self.clkgen = clkgen = LiteI2CClkGen(pads, i2c_speed_mode_delayed, sys_clk_freq)
 
-        nack = Signal()
+        nack          = Signal()
+        timeout_error = Signal()
 
         # SDA
         self.sda_o = sda_o  = Signal()
@@ -463,7 +464,7 @@ class LiteI2CPHYCore(LiteXModule):
             sink.ready.eq(1),
             sda_oe.eq(1),
             sda_o.eq(1),
-            NextValue(nack, nack | ~bus_free),
+            NextValue(nack, nack | timeout_error | ~bus_free),
             # Send Status/Data to Core.
             NextState("SEND-STATUS-DATA"),
         )
@@ -511,4 +512,12 @@ class LiteI2CPHYCore(LiteXModule):
             If(clkgen.tx,
                 NextState("STOP"),
             ),
+        )
+
+        transfer_starting = Signal()
+        self.comb += transfer_starting.eq(fsm.ongoing("WAIT-DATA") & active & sink.valid)
+        self.sync += If(transfer_starting,
+            timeout_error.eq(0),
+        ).Elif(clkgen.timeout,
+            timeout_error.eq(1),
         )

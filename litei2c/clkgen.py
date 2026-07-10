@@ -56,13 +56,17 @@ class LiteI2CClkGen(LiteXModule):
         self.keep_low   = keep_low   = Signal()
         self.suppress   = suppress   = Signal()
         self.scl_i      = scl_i      = Signal(reset=1)
+        self.timeout    = timeout    = Signal()
     
         cnt_width = bits_for(freq_to_div(sys_clk_freq, 100000))
+        stretch_timeout_cycles = max(1, math.ceil(sys_clk_freq / 40))
     
         self.div     = div     = Signal(cnt_width)
         self.cnt     = cnt     = Signal(cnt_width)
         self.sub_cnt = sub_cnt = Signal(2)
         self.clk     = clk     = Signal(reset=1)
+        stretch_cnt  = Signal(max=stretch_timeout_cycles + 1)
+        stretching    = Signal()
 
         self.comb += [
             Case(i2c_speed_mode, {
@@ -73,20 +77,31 @@ class LiteI2CClkGen(LiteXModule):
 
         self.comb += [
             tx.eq(en & (sub_cnt == 0b01) & (cnt == div)),
-            rx.eq(en & (sub_cnt == 0b11) & (cnt == div)),
+            rx.eq(en & (sub_cnt == 0b11) & (cnt == div) & (scl_i | timeout)),
+            stretching.eq(en & (sub_cnt == 0b11) & (cnt == div) & ~scl_i),
+            timeout.eq(stretching & (stretch_cnt == stretch_timeout_cycles)),
         ]
 
         self.sync += [
+            If(stretching & ~timeout,
+                stretch_cnt.eq(stretch_cnt + 1),
+            ).Else(
+                stretch_cnt.eq(0),
+            ),
             If(en,
                 If(cnt < div,
                     cnt.eq(cnt+1),
                 ).Else(
-                    cnt.eq(0),
-                    clk.eq(sub_cnt[1]),
-                    If(sub_cnt < 3,
-                        sub_cnt.eq(sub_cnt+1),
+                    If(stretching & ~timeout,
+                        clk.eq(1),
                     ).Else(
-                        sub_cnt.eq(0),
+                        cnt.eq(0),
+                        clk.eq(sub_cnt[1]),
+                        If(sub_cnt < 3,
+                            sub_cnt.eq(sub_cnt+1),
+                        ).Else(
+                            sub_cnt.eq(0),
+                        )
                     )
                 )
             ).Else(

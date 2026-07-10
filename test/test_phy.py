@@ -41,6 +41,7 @@ class TestLiteI2CPHY(unittest.TestCase):
             stop.eq(dut.fsm.ongoing("STOP")),
         ]
         nacks = []
+        done  = []
 
         def host_gen():
             yield dut.active.eq(1)
@@ -50,9 +51,10 @@ class TestLiteI2CPHY(unittest.TestCase):
             yield dut.sink.len_rx.eq(0)
             yield dut.source.ready.eq(1)
 
-            for _ in range(512):
+            for _ in range(32768):
                 if (yield dut.source.valid):
                     nacks.append((yield dut.source.nack))
+                    done.append(True)
                     break
                 yield
 
@@ -61,7 +63,9 @@ class TestLiteI2CPHY(unittest.TestCase):
         def pads_gen():
             started      = False
             stop_started = False
-            for _ in range(512):
+            for _ in range(32768):
+                if done:
+                    break
                 if (yield start):
                     started = True
                 if (yield stop):
@@ -127,6 +131,71 @@ class TestLiteI2CPHY(unittest.TestCase):
             raise AssertionError("recovery clock monitor did not complete")
         return nacks[0], recover_clocks[0]
 
+    @staticmethod
+    def _run_address_transfer_with_scl_stretch(stretch_cycles=256):
+        pads = _I2CPads()
+        dut  = LiteI2CPHYCore(pads, clock_domain="sys", sys_clk_freq=1e6)
+        start       = Signal()
+        addr_ack    = Signal()
+        stretch_done = Signal()
+        dut.comb += [
+            start.eq(dut.fsm.ongoing("START")),
+            addr_ack.eq(dut.fsm.ongoing("ADDR-ACK")),
+        ]
+        nacks                    = []
+        completed_before_release = []
+
+        def host_gen():
+            yield dut.active.eq(1)
+            yield dut.sink.valid.eq(1)
+            yield dut.sink.addr.eq(0x50)
+            yield dut.source.ready.eq(1)
+
+            for _ in range(2048):
+                if (yield dut.source.valid):
+                    nacks.append((yield dut.source.nack))
+                    completed_before_release.append(not (yield stretch_done))
+                    break
+                yield
+
+            yield dut.sink.valid.eq(0)
+
+        def pads_gen():
+            started      = False
+            saw_scl_low  = False
+            stretching   = False
+            stretch_count = 0
+            for _ in range(2048):
+                if (yield start):
+                    started = True
+
+                scl_driven_low = (yield pads.scl_oe)
+                if started and scl_driven_low:
+                    saw_scl_low = True
+                if saw_scl_low and not scl_driven_low and not (yield stretch_done):
+                    stretching = True
+
+                if stretching and (stretch_count < stretch_cycles):
+                    yield pads.scl_i.eq(0)
+                    stretch_count += 1
+                else:
+                    yield pads.scl_i.eq(0 if scl_driven_low else 1)
+                    if stretching:
+                        yield stretch_done.eq(1)
+
+                if (yield addr_ack):
+                    yield pads.sda_i.eq(0)
+                else:
+                    yield pads.sda_i.eq(1)
+                yield
+
+        run_simulation(dut, [host_gen(), pads_gen()])
+        if not nacks:
+            raise AssertionError("stretched transfer did not complete")
+        if not completed_before_release:
+            raise AssertionError("stretch completion monitor did not complete")
+        return nacks[0], completed_before_release[0]
+
     def test_address_ack_without_stuck_lines(self):
         self.assertEqual(self._run_address_only_transfer(), 0)
 
@@ -154,6 +223,11 @@ class TestLiteI2CPHY(unittest.TestCase):
         nack, recover_clocks = self._run_recovery()
         self.assertEqual(nack, 1)
         self.assertEqual(recover_clocks, 9)
+
+    def test_scl_clock_stretch_delays_transfer_completion(self):
+        nack, completed_before_release = self._run_address_transfer_with_scl_stretch()
+        self.assertEqual(nack, 0)
+        self.assertFalse(completed_before_release)
 
 
 if __name__ == "__main__":
