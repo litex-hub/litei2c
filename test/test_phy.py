@@ -93,6 +93,12 @@ class TestLiteI2CPHY(unittest.TestCase):
     def test_sda_stuck_low_after_start_reports_nack(self):
         self.assertEqual(self._run_address_only_transfer(sda_low_after_start=True), 1)
 
+    def test_sda_stuck_low_at_stop_reports_nack(self):
+        self.assertEqual(self._run_address_only_transfer(sda_low_after_stop=True), 1)
+
+    def test_scl_stuck_low_at_stop_reports_nack(self):
+        self.assertEqual(self._run_address_only_transfer(scl_low_after_stop=True), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
