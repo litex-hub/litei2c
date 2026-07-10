@@ -69,8 +69,9 @@ class LiteI2CPHYCore(LiteXModule):
         # Clock Generator.
         self.clkgen = clkgen = LiteI2CClkGen(pads, i2c_speed_mode_delayed, sys_clk_freq)
 
-        nack          = Signal()
-        timeout_error = Signal()
+        nack              = Signal()
+        timeout_error     = Signal()
+        arbitration_error = Signal()
 
         # SDA
         self.sda_o = sda_o  = Signal()
@@ -125,6 +126,11 @@ class LiteI2CPHYCore(LiteXModule):
                 len_tx_capped.eq(sink.len_tx),
             )
         ]
+
+        arbitration_check = Signal()
+        arbitration_lost  = Signal()
+        self.comb += arbitration_lost.eq(clkgen.rx & arbitration_check & sda_oe & sda_o & ~sda_i)
+
         self.sync += If(sr_out_load,
             sr_out.eq(sink.data << (len(sink.data) - len_tx_capped * 8)),
         )
@@ -172,6 +178,7 @@ class LiteI2CPHYCore(LiteXModule):
             clkgen.en.eq(1),
             sda_oe.eq(1),
             sda_o.eq(sr_addr[-1]),
+            arbitration_check.eq(1),
 
             If(clkgen.tx,
                If(sr_cnt == 6,
@@ -181,12 +188,16 @@ class LiteI2CPHYCore(LiteXModule):
                      NextValue(sr_cnt, sr_cnt + 1),
                 ),
             ),
+            If(arbitration_lost,
+                NextState("STOP"),
+            ),
         )
 
         fsm.act("ADDR-RW",
             # Generate Clk.
             clkgen.en.eq(1),
             sda_oe.eq(1),
+            arbitration_check.eq(1),
 
             If((sink.len_tx > 0) & ~tx_done,
                 sda_o.eq(0),
@@ -198,7 +209,10 @@ class LiteI2CPHYCore(LiteXModule):
 
             If(clkgen.tx,
                 NextState("ADDR-ACK"),
-            )
+            ),
+            If(arbitration_lost,
+                NextState("STOP"),
+            ),
         )
 
         fsm.act("ADDR-ACK",
@@ -236,6 +250,7 @@ class LiteI2CPHYCore(LiteXModule):
             # Generate Clk.
             clkgen.en.eq(1),
             sr_out_en.eq(1),
+            arbitration_check.eq(1),
 
             # Data Out Shift.
             If(clkgen.tx,
@@ -247,6 +262,9 @@ class LiteI2CPHYCore(LiteXModule):
                      NextValue(sr_cnt, sr_cnt + 1),
                      sr_out_shift.eq(1),
                 ),
+            ),
+            If(arbitration_lost,
+                NextState("STOP"),
             ),
         )
 
@@ -340,8 +358,12 @@ class LiteI2CPHYCore(LiteXModule):
             clkgen.en.eq(1),
             sda_oe.eq(1),
             sda_o.eq(1),
+            arbitration_check.eq(1),
             If(clkgen.rx,
                 NextState("START"),
+            ),
+            If(arbitration_lost,
+                NextState("STOP"),
             ),
         )
 
@@ -407,9 +429,13 @@ class LiteI2CPHYCore(LiteXModule):
             clkgen.en.eq(1),
             sda_oe.eq(1),
             sda_o.eq(1),
+            arbitration_check.eq(1),
             
 
             If(clkgen.tx,
+                NextState("STOP"),
+            ),
+            If(arbitration_lost,
                 NextState("STOP"),
             ),
         )
@@ -464,7 +490,7 @@ class LiteI2CPHYCore(LiteXModule):
             sink.ready.eq(1),
             sda_oe.eq(1),
             sda_o.eq(1),
-            NextValue(nack, nack | timeout_error | ~bus_free),
+            NextValue(nack, nack | timeout_error | arbitration_error | ~bus_free),
             # Send Status/Data to Core.
             NextState("SEND-STATUS-DATA"),
         )
@@ -518,6 +544,12 @@ class LiteI2CPHYCore(LiteXModule):
         self.comb += transfer_starting.eq(fsm.ongoing("WAIT-DATA") & active & sink.valid)
         self.sync += If(transfer_starting,
             timeout_error.eq(0),
-        ).Elif(clkgen.timeout,
-            timeout_error.eq(1),
+            arbitration_error.eq(0),
+        ).Else(
+            If(clkgen.timeout,
+                timeout_error.eq(1),
+            ),
+            If(arbitration_lost,
+                arbitration_error.eq(1),
+            ),
         )
