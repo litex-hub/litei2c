@@ -81,6 +81,52 @@ class TestLiteI2CPHY(unittest.TestCase):
             raise AssertionError("transfer did not complete")
         return nacks[0]
 
+    @staticmethod
+    def _run_recovery(release_after_clocks=None):
+        pads = _I2CPads()
+        dut  = LiteI2CPHYCore(pads, clock_domain="sys", sys_clk_freq=1e6)
+        recover = Signal()
+        dut.comb += recover.eq(dut.fsm.ongoing("RECOVER-1"))
+        nacks         = []
+        recover_clocks = []
+
+        def host_gen():
+            yield dut.active.eq(1)
+            yield dut.sink.valid.eq(1)
+            yield dut.sink.recover.eq(1)
+            yield dut.source.ready.eq(1)
+
+            for _ in range(1024):
+                if (yield dut.source.valid):
+                    nacks.append((yield dut.source.nack))
+                    break
+                yield
+
+            yield dut.sink.valid.eq(0)
+            yield dut.sink.recover.eq(0)
+
+        def pads_gen():
+            clock_count = 0
+            for _ in range(1024):
+                yield pads.scl_i.eq(1)
+                if (release_after_clocks is not None) and (clock_count >= release_after_clocks):
+                    yield pads.sda_i.eq(1)
+                else:
+                    yield pads.sda_i.eq(0)
+
+                if (yield recover) and (yield dut.clkgen.tx):
+                    clock_count += 1
+                yield
+
+            recover_clocks.append(clock_count)
+
+        run_simulation(dut, [host_gen(), pads_gen()])
+        if not nacks:
+            raise AssertionError("recovery did not complete")
+        if not recover_clocks:
+            raise AssertionError("recovery clock monitor did not complete")
+        return nacks[0], recover_clocks[0]
+
     def test_address_ack_without_stuck_lines(self):
         self.assertEqual(self._run_address_only_transfer(), 0)
 
@@ -98,6 +144,16 @@ class TestLiteI2CPHY(unittest.TestCase):
 
     def test_scl_stuck_low_at_stop_reports_nack(self):
         self.assertEqual(self._run_address_only_transfer(scl_low_after_stop=True), 1)
+
+    def test_recovery_released_sda_reports_ack(self):
+        nack, recover_clocks = self._run_recovery(release_after_clocks=3)
+        self.assertEqual(nack, 0)
+        self.assertGreaterEqual(recover_clocks, 3)
+
+    def test_recovery_stuck_sda_reports_nack(self):
+        nack, recover_clocks = self._run_recovery()
+        self.assertEqual(nack, 1)
+        self.assertEqual(recover_clocks, 9)
 
 
 if __name__ == "__main__":
