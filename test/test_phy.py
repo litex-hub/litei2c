@@ -24,19 +24,23 @@ class _I2CPads:
 class TestLiteI2CPHY(unittest.TestCase):
     @staticmethod
     def _run_address_only_transfer(
+        addr             = 0x50,
         sda_stuck_low    = False,
         scl_stuck_low    = False,
         sda_low_after_start = False,
         sda_low_after_stop  = False,
         scl_low_after_stop  = False,
+        sda_low_on_addr_high = False,
     ):
         pads = _I2CPads()
         dut  = LiteI2CPHYCore(pads, clock_domain="sys", sys_clk_freq=1e6)
         start    = Signal()
+        addr_xfer = Signal()
         addr_ack = Signal()
         stop     = Signal()
         dut.comb += [
             start.eq(dut.fsm.ongoing("START")),
+            addr_xfer.eq(dut.fsm.ongoing("ADDR")),
             addr_ack.eq(dut.fsm.ongoing("ADDR-ACK")),
             stop.eq(dut.fsm.ongoing("STOP")),
         ]
@@ -46,7 +50,7 @@ class TestLiteI2CPHY(unittest.TestCase):
         def host_gen():
             yield dut.active.eq(1)
             yield dut.sink.valid.eq(1)
-            yield dut.sink.addr.eq(0x50)
+            yield dut.sink.addr.eq(addr)
             yield dut.sink.len_tx.eq(0)
             yield dut.sink.len_rx.eq(0)
             yield dut.source.ready.eq(1)
@@ -73,6 +77,8 @@ class TestLiteI2CPHY(unittest.TestCase):
 
                 yield pads.scl_i.eq(0 if (scl_stuck_low or (scl_low_after_stop and stop_started)) else 1)
                 if sda_stuck_low or (sda_low_after_start and started) or (sda_low_after_stop and stop_started):
+                    yield pads.sda_i.eq(0)
+                elif sda_low_on_addr_high and (yield addr_xfer) and (yield dut.sda_oe) and (yield dut.sda_o):
                     yield pads.sda_i.eq(0)
                 elif (yield addr_ack):
                     yield pads.sda_i.eq(0)
@@ -228,6 +234,9 @@ class TestLiteI2CPHY(unittest.TestCase):
         nack, completed_before_release = self._run_address_transfer_with_scl_stretch()
         self.assertEqual(nack, 0)
         self.assertFalse(completed_before_release)
+
+    def test_arbitration_lost_on_address_reports_nack(self):
+        self.assertEqual(self._run_address_only_transfer(addr=0x7f, sda_low_on_addr_high=True), 1)
 
 
 if __name__ == "__main__":
