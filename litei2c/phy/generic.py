@@ -70,6 +70,7 @@ class LiteI2CPHYCore(LiteXModule):
         self.clkgen = clkgen = LiteI2CClkGen(pads, i2c_speed_mode_delayed, sys_clk_freq)
 
         nack              = Signal()
+        bus_error         = Signal()
         timeout_error     = Signal()
         arbitration_error = Signal()
 
@@ -94,6 +95,8 @@ class LiteI2CPHYCore(LiteXModule):
 
         bus_free = Signal()
         self.comb += bus_free.eq(clkgen.scl_i & sda_i)
+        xfer_bus_error = Signal()
+        self.comb += xfer_bus_error.eq(bus_error | timeout_error | arbitration_error | ~bus_free)
 
         bytes_send = Signal(3)
         bytes_recv = Signal(3)
@@ -143,6 +146,7 @@ class LiteI2CPHYCore(LiteXModule):
         self.fsm = fsm = FSM(reset_state="WAIT-DATA")
         fsm.act("WAIT-DATA",
             NextValue(nack, 0),
+            NextValue(bus_error, 0),
             NextValue(tx_done, 0),
             # Wait for CS and a CMD from the Core.
             If(active & sink.valid,
@@ -151,6 +155,7 @@ class LiteI2CPHYCore(LiteXModule):
                     NextState("START"),
                 ).Else(
                     NextValue(nack, 1),
+                    NextValue(bus_error, 1),
                     NextState("XFER-END"),
                 )
             ),
@@ -490,7 +495,8 @@ class LiteI2CPHYCore(LiteXModule):
             sink.ready.eq(1),
             sda_oe.eq(1),
             sda_o.eq(1),
-            NextValue(nack, nack | timeout_error | arbitration_error | ~bus_free),
+            NextValue(bus_error, xfer_bus_error),
+            NextValue(nack, nack | xfer_bus_error),
             # Send Status/Data to Core.
             NextState("SEND-STATUS-DATA"),
         )
@@ -501,6 +507,7 @@ class LiteI2CPHYCore(LiteXModule):
             sda_o.eq(1),
             source.data.eq(sr_in),
             source.nack.eq(nack),
+            source.bus_error.eq(bus_error),
             source.valid.eq(1),
             source.last.eq(1),
             If(source.ready,

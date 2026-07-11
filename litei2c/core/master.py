@@ -54,6 +54,7 @@ class LiteI2CMaster(LiteXModule):
             CSRField("tx_ready", size=1, offset=0, description="TX FIFO is not full."),
             CSRField("rx_ready", size=1, offset=1, description="RX FIFO is not empty."),
             CSRField("nack", size=1, offset=8, description="Error on transfer." ),
+            CSRField("bus_error", size=1, offset=9, description="I2C bus error on transfer."),
             CSRField("tx_unfinished", size=1, offset=16, description="Another tx transfer is expected."),
             CSRField("rx_unfinished", size=1, offset=17, description="Another rx transfer is expected.")
         ])
@@ -84,6 +85,7 @@ class LiteI2CMaster(LiteXModule):
             If(self._rxtx.rd_stb, rx_fifo.source.ready.eq(1)),
             self._status.fields.rx_ready.eq(rx_fifo.source.valid),
             self._status.fields.nack.eq(rx_fifo.source.nack),
+            self._status.fields.bus_error.eq(rx_fifo.source.bus_error),
             self._status.fields.tx_unfinished.eq(rx_fifo.source.unfinished_tx),
             self._status.fields.rx_unfinished.eq(rx_fifo.source.unfinished_rx),
             self._rxtx.rd_data.eq(rx_fifo.source.data),
