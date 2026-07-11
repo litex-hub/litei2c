@@ -8,6 +8,7 @@ import unittest
 
 from migen import *
 
+from litei2c.core.master import LiteI2CMaster
 from litei2c.phy.generic import LiteI2CPHYCore
 
 
@@ -25,12 +26,14 @@ class TestLiteI2CPHY(unittest.TestCase):
     @staticmethod
     def _run_address_only_transfer(
         addr             = 0x50,
+        ack              = True,
         sda_stuck_low    = False,
         scl_stuck_low    = False,
         sda_low_after_start = False,
         sda_low_after_stop  = False,
         scl_low_after_stop  = False,
         sda_low_on_addr_high = False,
+        return_status    = False,
     ):
         pads = _I2CPads()
         dut  = LiteI2CPHYCore(pads, clock_domain="sys", sys_clk_freq=1e6)
@@ -44,8 +47,8 @@ class TestLiteI2CPHY(unittest.TestCase):
             addr_ack.eq(dut.fsm.ongoing("ADDR-ACK")),
             stop.eq(dut.fsm.ongoing("STOP")),
         ]
-        nacks = []
-        done  = []
+        statuses = []
+        done     = []
 
         def host_gen():
             yield dut.active.eq(1)
@@ -57,7 +60,7 @@ class TestLiteI2CPHY(unittest.TestCase):
 
             for _ in range(32768):
                 if (yield dut.source.valid):
-                    nacks.append((yield dut.source.nack))
+                    statuses.append(((yield dut.source.nack), (yield dut.source.bus_error)))
                     done.append(True)
                     break
                 yield
@@ -80,16 +83,16 @@ class TestLiteI2CPHY(unittest.TestCase):
                     yield pads.sda_i.eq(0)
                 elif sda_low_on_addr_high and (yield addr_xfer) and (yield dut.sda_oe) and (yield dut.sda_o):
                     yield pads.sda_i.eq(0)
-                elif (yield addr_ack):
+                elif (yield addr_ack) and ack:
                     yield pads.sda_i.eq(0)
                 else:
                     yield pads.sda_i.eq(1)
                 yield
 
         run_simulation(dut, [host_gen(), pads_gen()])
-        if not nacks:
+        if not statuses:
             raise AssertionError("transfer did not complete")
-        return nacks[0]
+        return statuses[0] if return_status else statuses[0][0]
 
     @staticmethod
     def _run_recovery(release_after_clocks=None):
@@ -97,7 +100,7 @@ class TestLiteI2CPHY(unittest.TestCase):
         dut  = LiteI2CPHYCore(pads, clock_domain="sys", sys_clk_freq=1e6)
         recover = Signal()
         dut.comb += recover.eq(dut.fsm.ongoing("RECOVER-1"))
-        nacks         = []
+        statuses      = []
         recover_clocks = []
 
         def host_gen():
@@ -108,7 +111,7 @@ class TestLiteI2CPHY(unittest.TestCase):
 
             for _ in range(1024):
                 if (yield dut.source.valid):
-                    nacks.append((yield dut.source.nack))
+                    statuses.append(((yield dut.source.nack), (yield dut.source.bus_error)))
                     break
                 yield
 
@@ -131,11 +134,11 @@ class TestLiteI2CPHY(unittest.TestCase):
             recover_clocks.append(clock_count)
 
         run_simulation(dut, [host_gen(), pads_gen()])
-        if not nacks:
+        if not statuses:
             raise AssertionError("recovery did not complete")
         if not recover_clocks:
             raise AssertionError("recovery clock monitor did not complete")
-        return nacks[0], recover_clocks[0]
+        return statuses[0], recover_clocks[0]
 
     @staticmethod
     def _run_address_transfer_with_scl_stretch(stretch_cycles=256):
@@ -221,12 +224,12 @@ class TestLiteI2CPHY(unittest.TestCase):
         self.assertEqual(self._run_address_only_transfer(scl_low_after_stop=True), 1)
 
     def test_recovery_released_sda_reports_ack(self):
-        nack, recover_clocks = self._run_recovery(release_after_clocks=3)
+        (nack, _), recover_clocks = self._run_recovery(release_after_clocks=3)
         self.assertEqual(nack, 0)
         self.assertGreaterEqual(recover_clocks, 3)
 
     def test_recovery_stuck_sda_reports_nack(self):
-        nack, recover_clocks = self._run_recovery()
+        (nack, _), recover_clocks = self._run_recovery()
         self.assertEqual(nack, 1)
         self.assertEqual(recover_clocks, 9)
 
@@ -237,6 +240,30 @@ class TestLiteI2CPHY(unittest.TestCase):
 
     def test_arbitration_lost_on_address_reports_nack(self):
         self.assertEqual(self._run_address_only_transfer(addr=0x7f, sda_low_on_addr_high=True), 1)
+
+    def test_slave_nack_does_not_report_bus_error(self):
+        nack, bus_error = self._run_address_only_transfer(ack=False, return_status=True)
+        self.assertEqual(nack, 1)
+        self.assertEqual(bus_error, 0)
+
+    def test_stuck_bus_reports_bus_error(self):
+        nack, bus_error = self._run_address_only_transfer(sda_stuck_low=True, return_status=True)
+        self.assertEqual(nack, 1)
+        self.assertEqual(bus_error, 1)
+
+    def test_arbitration_lost_reports_bus_error(self):
+        nack, bus_error = self._run_address_only_transfer(
+            addr=0x7f,
+            sda_low_on_addr_high=True,
+            return_status=True,
+        )
+        self.assertEqual(nack, 1)
+        self.assertEqual(bus_error, 1)
+
+    def test_master_exposes_bus_error_status(self):
+        master = LiteI2CMaster()
+        self.assertTrue(hasattr(master._status.fields, "bus_error"))
+        self.assertEqual(master._status.fields.bus_error.offset, 9)
 
 
 if __name__ == "__main__":

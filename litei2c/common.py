@@ -27,12 +27,14 @@ i2c_core2phy_layout = [
 Stream layout for PHY->LiteI2CCore connection
 data - received data
 nack - NACK signal
+bus_error - bus error signal
 unfinished_tx - another tx transfer is expected
 unfinished_rx - another rx transfer is expected
 """
 i2c_phy2core_layout = [
-    ("data",  32),
-    ("nack", 1),
+    ("data",      32),
+    ("nack",       1),
+    ("bus_error",  1),
     ("unfinished_tx", 1),
     ("unfinished_rx", 1)
 ]
