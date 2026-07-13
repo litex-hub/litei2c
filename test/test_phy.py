@@ -33,6 +33,7 @@ class TestLiteI2CPHY(unittest.TestCase):
         sda_low_after_stop  = False,
         scl_low_after_stop  = False,
         sda_low_on_addr_high = False,
+        stop_release_input_delay = 0,
         return_status    = False,
     ):
         pads = _I2CPads()
@@ -70,6 +71,8 @@ class TestLiteI2CPHY(unittest.TestCase):
         def pads_gen():
             started      = False
             stop_started = False
+            stop_active  = False
+            release_delay = 0
             for _ in range(32768):
                 if done:
                     break
@@ -77,10 +80,16 @@ class TestLiteI2CPHY(unittest.TestCase):
                     started = True
                 if (yield stop):
                     stop_started = True
+                if stop_active and not (yield stop):
+                    release_delay = stop_release_input_delay
+                stop_active = (yield stop)
 
                 yield pads.scl_i.eq(0 if (scl_stuck_low or (scl_low_after_stop and stop_started)) else 1)
                 if sda_stuck_low or (sda_low_after_start and started) or (sda_low_after_stop and stop_started):
                     yield pads.sda_i.eq(0)
+                elif release_delay:
+                    yield pads.sda_i.eq(0)
+                    release_delay -= 1
                 elif sda_low_on_addr_high and (yield addr_xfer) and (yield dut.sda_oe) and (yield dut.sda_o):
                     yield pads.sda_i.eq(0)
                 elif (yield addr_ack) and ack:
@@ -207,6 +216,9 @@ class TestLiteI2CPHY(unittest.TestCase):
 
     def test_address_ack_without_stuck_lines(self):
         self.assertEqual(self._run_address_only_transfer(), 0)
+
+    def test_stop_release_tolerates_registered_input_delay(self):
+        self.assertEqual(self._run_address_only_transfer(stop_release_input_delay=1), 0)
 
     def test_sda_stuck_low_reports_nack(self):
         self.assertEqual(self._run_address_only_transfer(sda_stuck_low=True), 1)

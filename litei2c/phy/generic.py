@@ -484,10 +484,26 @@ class LiteI2CPHYCore(LiteXModule):
         
             If(clkgen.rx,
                 sda_o.eq(1),
-                NextState("XFER-END"),
+                NextState("XFER-END-SETTLE"),
             ).Else( 
                 sda_o.eq(0),
             )
+        )
+
+        # SDRTristate inputs are registered. Allow the released STOP levels
+        # two system-clock cycles to reach scl_i/sda_i before checking that the
+        # bus returned high; otherwise every valid transfer is reported as a
+        # stuck-low bus error on hardware.
+        fsm.act("XFER-END-SETTLE",
+            sda_oe.eq(1),
+            sda_o.eq(1),
+            NextState("XFER-END-SETTLE-2"),
+        )
+
+        fsm.act("XFER-END-SETTLE-2",
+            sda_oe.eq(1),
+            sda_o.eq(1),
+            NextState("XFER-END"),
         )
 
         fsm.act("XFER-END",
