@@ -34,6 +34,8 @@ class TestLiteI2CPHY(unittest.TestCase):
         scl_low_after_stop  = False,
         sda_low_on_addr_high = False,
         stop_release_input_delay = 0,
+        tx_len           = 0,
+        tx_data          = 0,
         return_status    = False,
     ):
         pads = _I2CPads()
@@ -41,11 +43,13 @@ class TestLiteI2CPHY(unittest.TestCase):
         start    = Signal()
         addr_xfer = Signal()
         addr_ack = Signal()
+        tx_ack   = Signal()
         stop     = Signal()
         dut.comb += [
             start.eq(dut.fsm.ongoing("START")),
             addr_xfer.eq(dut.fsm.ongoing("ADDR")),
             addr_ack.eq(dut.fsm.ongoing("ADDR-ACK")),
+            tx_ack.eq(dut.fsm.ongoing("TX-ACK")),
             stop.eq(dut.fsm.ongoing("STOP")),
         ]
         statuses = []
@@ -55,7 +59,8 @@ class TestLiteI2CPHY(unittest.TestCase):
             yield dut.active.eq(1)
             yield dut.sink.valid.eq(1)
             yield dut.sink.addr.eq(addr)
-            yield dut.sink.len_tx.eq(0)
+            yield dut.sink.data.eq(tx_data)
+            yield dut.sink.len_tx.eq(tx_len)
             yield dut.sink.len_rx.eq(0)
             yield dut.source.ready.eq(1)
 
@@ -92,7 +97,7 @@ class TestLiteI2CPHY(unittest.TestCase):
                     release_delay -= 1
                 elif sda_low_on_addr_high and (yield addr_xfer) and (yield dut.sda_oe) and (yield dut.sda_o):
                     yield pads.sda_i.eq(0)
-                elif (yield addr_ack) and ack:
+                elif ((yield addr_ack) or (yield tx_ack)) and ack:
                     yield pads.sda_i.eq(0)
                 else:
                     yield pads.sda_i.eq(1)
@@ -219,6 +224,18 @@ class TestLiteI2CPHY(unittest.TestCase):
 
     def test_stop_release_tolerates_registered_input_delay(self):
         self.assertEqual(self._run_address_only_transfer(stop_release_input_delay=1), 0)
+
+    def test_stop_release_tolerates_open_drain_rise_time(self):
+        self.assertEqual(self._run_address_only_transfer(stop_release_input_delay=8), 0)
+
+    def test_write_ack_tolerates_open_drain_stop_rise_time(self):
+        nack, bus_error = self._run_address_only_transfer(
+            tx_len=3,
+            tx_data=0x040000,
+            stop_release_input_delay=8,
+            return_status=True,
+        )
+        self.assertEqual((nack, bus_error), (0, 0))
 
     def test_sda_stuck_low_reports_nack(self):
         self.assertEqual(self._run_address_only_transfer(sda_stuck_low=True), 1)

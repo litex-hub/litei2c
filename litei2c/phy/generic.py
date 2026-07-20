@@ -490,20 +490,25 @@ class LiteI2CPHYCore(LiteXModule):
             )
         )
 
-        # SDRTristate inputs are registered. Allow the released STOP levels
-        # two system-clock cycles to reach scl_i/sda_i before checking that the
-        # bus returned high; otherwise every valid transfer is reported as a
-        # stuck-low bus error on hardware.
+        # After STOP, the open-drain bus needs pullup rise time before the
+        # sampled inputs can be checked. Wait until the bus is free, bounded by
+        # one I2C receive phase so genuinely stuck-low buses still report an
+        # error instead of hanging the transaction. If a bus error has already
+        # been latched, skip the extra wait and report it.
         fsm.act("XFER-END-SETTLE",
             sda_oe.eq(1),
             sda_o.eq(1),
-            NextState("XFER-END-SETTLE-2"),
+            NextState("XFER-END-WAIT-BUS"),
         )
 
-        fsm.act("XFER-END-SETTLE-2",
+        fsm.act("XFER-END-WAIT-BUS",
+            clkgen.en.eq(1),
+            clkgen.suppress.eq(1),
             sda_oe.eq(1),
             sda_o.eq(1),
-            NextState("XFER-END"),
+            If(timeout_error | arbitration_error | bus_free | clkgen.rx,
+                NextState("XFER-END"),
+            ),
         )
 
         fsm.act("XFER-END",
