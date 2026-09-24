@@ -1,4 +1,5 @@
 graft litei2c
+prune test
 
 include CONTRIBUTORS
 include LICENSE
