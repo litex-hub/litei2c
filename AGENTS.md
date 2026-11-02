@@ -12,7 +12,7 @@ verify a change, contribute back). Index of the whole wiki for agents: https://g
 ## Verify a change
 
 ```sh
-python3 -m pytest -q test                                           # unit tests (no CI workflow yet)
+python3 -m pytest -v                                                # what CI runs
 python3 -m litex_boards.targets.<board> --build --no-compile         # with a target using LiteI2C
 ```
 
