@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="200" viewBox="0 0 760 200">
+<defs>
+  <marker id="arrow-ctrl" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0,0 L8,4 L0,8 Z" fill="#5b5b5b"/></marker>
+  <marker id="arrow-ctrl-rev" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto">
+    <path d="M8,0 L0,4 L8,8 Z" fill="#5b5b5b"/></marker>
+  <marker id="arrow-stream" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="9" refY="4.5" orient="auto">
+    <path d="M0,0 L9,4.5 L0,9 Z" fill="#606060"/></marker>
+  <marker id="arrow-accent" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="9" refY="4.5" orient="auto">
+    <path d="M0,0 L9,4.5 L0,9 Z" fill="#2eaadc"/></marker>
+  <marker id="arrow-accent-rev" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="0" refY="4.5" orient="auto">
+    <path d="M9,0 L0,4.5 L9,9 Z" fill="#2eaadc"/></marker>
+  <marker id="arrow-stream-rev" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="0" refY="4.5" orient="auto">
+    <path d="M9,0 L0,4.5 L9,9 Z" fill="#606060"/></marker>
+</defs>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<polyline points="120,65 230,65 230,85 300,85 300,65 370,65 370,85 440,85 440,65 520,65 520,85 590,85 590,65 745,65" fill="none" stroke="#5b5b5b" stroke-width="1.0"/>
+<polyline points="120,120 180,120 180,140 260,140 260,120 480,120 480,140 640,140 640,120 745,120" fill="none" stroke="#5b5b5b" stroke-width="1.0"/>
+<polyline points="180,34 180,150" fill="none" stroke="#9a9a9a" stroke-width="1.0" stroke-dasharray="2,3"/>
+<polyline points="335,34 335,150" fill="none" stroke="#9a9a9a" stroke-width="1.0" stroke-dasharray="2,3"/>
+<polyline points="480,34 480,150" fill="none" stroke="#9a9a9a" stroke-width="1.0" stroke-dasharray="2,3"/>
+<polyline points="640,34 640,150" fill="none" stroke="#9a9a9a" stroke-width="1.0" stroke-dasharray="2,3"/>
+<polyline points="300,160 370,160" fill="none" stroke="#5b5b5b" stroke-width="1.0" marker-end="url(#arrow-ctrl)" marker-start="url(#arrow-ctrl-rev)"/>
+<polyline points="260,145 260,168" fill="none" stroke="#9a9a9a" stroke-width="1.0" stroke-dasharray="2,3"/>
+<text x="110" y="75" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="13" fill="#000000" text-anchor="end" dominant-baseline="central"><tspan x="110" dy="0">SCL</tspan></text>
+<text x="110" y="130" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="13" fill="#000000" text-anchor="end" dominant-baseline="central"><tspan x="110" dy="0">SDA</tspan></text>
+<text x="180" y="22" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="180" dy="0">START</tspan></text>
+<text x="335" y="22" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="335" dy="0">data bit</tspan></text>
+<text x="480" y="22" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="480" dy="0">repeated START</tspan></text>
+<text x="640" y="22" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="640" dy="0">STOP</tspan></text>
+<text x="335" y="180" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="335" dy="0">SDA stable</tspan></text>
+<text x="245" y="180" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="245" dy="0">SDA changes</tspan></text>
+</svg>
