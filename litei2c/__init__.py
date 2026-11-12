@@ -6,6 +6,8 @@
 
 from migen import *
 
+from migen.genlib.cdc import MultiReg
+
 from litex.gen import *
 
 from litex.soc.interconnect import stream
@@ -35,7 +37,8 @@ class LiteI2C(LiteXModule):
     Parameters
     ----------
     sys_clk_freq : int
-        Frequency of the system clock.
+        Frequency of the system clock, or of the ``clock_domain`` clock when it is not "sys" (the
+        PHY then runs in ``clock_domain`` and this frequency sets its SCL dividers).
 
     phy : Module
         Module or object that contains PHY stream interfaces and a active signal to connect
@@ -45,7 +48,7 @@ class LiteI2C(LiteXModule):
         I2C pads description.
 
     clock_domain : str
-        Name of LiteI2C clock domain.
+        Name of LiteI2C clock domain (PHY), registers are in sys (stream CDC in the crossbar).
 
     with_master : bool
         Enables register-operated I2C master controller.
@@ -63,7 +66,11 @@ class LiteI2C(LiteXModule):
 
         self.crossbar = crossbar = LiteI2CCrossbar(clock_domain)
 
-        self.comb += phy.active.eq(crossbar.active)
+        # PHY active (in the PHY clock domain).
+        if clock_domain != "sys":
+            self.specials += MultiReg(crossbar.active, phy.active, clock_domain)
+        else:
+            self.comb += phy.active.eq(crossbar.active)
 
         if with_master:
             self.master = master = LiteI2CMaster(
