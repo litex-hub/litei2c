@@ -201,7 +201,7 @@ class LiteI2CPHYCore(LiteXModule):
                 ),
             ),
             If(arbitration_lost,
-                NextState("STOP"),
+                NextState("ARBITRATION-LOST"),
             ),
         )
 
@@ -223,7 +223,7 @@ class LiteI2CPHYCore(LiteXModule):
                 NextState("ADDR-ACK"),
             ),
             If(arbitration_lost,
-                NextState("STOP"),
+                NextState("ARBITRATION-LOST"),
             ),
         )
 
@@ -276,7 +276,7 @@ class LiteI2CPHYCore(LiteXModule):
                 ),
             ),
             If(arbitration_lost,
-                NextState("STOP"),
+                NextState("ARBITRATION-LOST"),
             ),
         )
 
@@ -356,6 +356,12 @@ class LiteI2CPHYCore(LiteXModule):
             ),       
         )
 
+        # Arbitration lost: another controller owns the bus. Release SDA and SCL (no STOP, which
+        # would drive SDA low during its transfer) and report the error (nack + bus_error).
+        fsm.act("ARBITRATION-LOST",
+            NextState("XFER-END"),
+        )
+
         fsm.act("REPEATED-START-1",
             # Generate Clk.
             clkgen.en.eq(1),
@@ -375,7 +381,7 @@ class LiteI2CPHYCore(LiteXModule):
                 NextState("START"),
             ),
             If(arbitration_lost,
-                NextState("STOP"),
+                NextState("ARBITRATION-LOST"),
             ),
         )
 
@@ -448,7 +454,7 @@ class LiteI2CPHYCore(LiteXModule):
                 NextState("STOP"),
             ),
             If(arbitration_lost,
-                NextState("STOP"),
+                NextState("ARBITRATION-LOST"),
             ),
         )
 

@@ -219,6 +219,60 @@ class TestLiteI2CPHY(unittest.TestCase):
             raise AssertionError("stretch completion monitor did not complete")
         return nacks[0], completed_before_release[0]
 
+    @staticmethod
+    def _run_arbitration_loss_on_address():
+        # Another controller pulls SDA low while LiteI2C releases it for an address bit (0x7f) and
+        # keeps it low for its own transfer. Returns the status and the lines driven low by LiteI2C
+        # once it left the ADDR state.
+        pads = _I2CPads()
+        dut  = LiteI2CPHYCore(pads, clock_domain="sys", sys_clk_freq=1e6)
+        addr_xfer = Signal()
+        dut.comb += addr_xfer.eq(dut.fsm.ongoing("ADDR"))
+        statuses = []
+        driven   = set()
+
+        def host_gen():
+            yield dut.active.eq(1)
+            yield dut.sink.valid.eq(1)
+            yield dut.sink.addr.eq(0x7f)
+            yield dut.source.ready.eq(1)
+            for _ in range(32768):
+                if (yield dut.source.valid):
+                    statuses.append(((yield dut.source.nack), (yield dut.source.bus_error)))
+                    break
+                yield
+            yield dut.sink.valid.eq(0)
+
+        def pads_gen():
+            conflict = False
+            lost     = False
+            for _ in range(32768):
+                if statuses:
+                    break
+                if (yield addr_xfer) and (yield dut.sda_oe) and (yield dut.sda_o):
+                    conflict = True
+                if conflict and not (yield addr_xfer):
+                    lost = True
+                if lost:
+                    if (yield pads.sda_oe):
+                        driven.add("sda")
+                    if (yield pads.scl_oe):
+                        driven.add("scl")
+                yield pads.scl_i.eq(0 if (yield pads.scl_oe) else 1)
+                yield pads.sda_i.eq(0 if (conflict or (yield pads.sda_oe)) else 1)
+                yield
+
+        run_simulation(dut, [host_gen(), pads_gen()])
+        if not statuses:
+            raise AssertionError("transfer did not complete")
+        return statuses[0], driven
+
+    def test_arbitration_lost_releases_bus(self):
+        # The losing controller must not disturb the winning transfer: no STOP, SDA and SCL released.
+        (nack, bus_error), driven = self._run_arbitration_loss_on_address()
+        self.assertEqual((nack, bus_error), (1, 1))
+        self.assertEqual(driven, set())
+
     def test_address_ack_without_stuck_lines(self):
         self.assertEqual(self._run_address_only_transfer(), 0)
 
