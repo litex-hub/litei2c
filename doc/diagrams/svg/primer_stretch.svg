@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="215" viewBox="0 0 760 215">
+<defs>
+  <marker id="arrow-ctrl" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0,0 L8,4 L0,8 Z" fill="#5b5b5b"/></marker>
+  <marker id="arrow-ctrl-rev" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto">
+    <path d="M8,0 L0,4 L8,8 Z" fill="#5b5b5b"/></marker>
+  <marker id="arrow-stream" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="9" refY="4.5" orient="auto">
+    <path d="M0,0 L9,4.5 L0,9 Z" fill="#606060"/></marker>
+  <marker id="arrow-accent" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="9" refY="4.5" orient="auto">
+    <path d="M0,0 L9,4.5 L0,9 Z" fill="#2eaadc"/></marker>
+  <marker id="arrow-accent-rev" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="0" refY="4.5" orient="auto">
+    <path d="M9,0 L0,4.5 L9,9 Z" fill="#2eaadc"/></marker>
+  <marker id="arrow-stream-rev" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="0" refY="4.5" orient="auto">
+    <path d="M9,0 L0,4.5 L9,9 Z" fill="#606060"/></marker>
+</defs>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<polyline points="180,35 230,35 230,55 290,55 290,35 350,35 350,55 410,55 410,35 570,35 570,55 630,55 630,35 690,35 690,55 745,55" fill="none" stroke="#5b5b5b" stroke-width="1.0"/>
+<polyline points="180,90 350,90 350,110 510,110 510,90 745,90" fill="none" stroke="#5b5b5b" stroke-width="1.0"/>
+<polyline points="180,145 230,145 230,165 290,165 290,145 350,145 350,165 510,165 510,145 570,145 570,165 630,165 630,145 690,145 690,165 745,165" fill="none" stroke="#2eaadc" stroke-width="1.0"/>
+<polyline points="410,25 410,170" fill="none" stroke="#9a9a9a" stroke-width="1.0" stroke-dasharray="2,3"/>
+<polyline points="510,25 510,170" fill="none" stroke="#9a9a9a" stroke-width="1.0" stroke-dasharray="2,3"/>
+<polyline points="410,190 510,190" fill="none" stroke="#5b5b5b" stroke-width="1.0" marker-end="url(#arrow-ctrl)" marker-start="url(#arrow-ctrl-rev)"/>
+<text x="170" y="45" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="13" fill="#000000" text-anchor="end" dominant-baseline="central"><tspan x="170" dy="0">Controller drives</tspan></text>
+<text x="170" y="100" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="13" fill="#000000" text-anchor="end" dominant-baseline="central"><tspan x="170" dy="0">Target drives</tspan></text>
+<text x="170" y="155" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="13" fill="#000000" text-anchor="end" dominant-baseline="central"><tspan x="170" dy="0">SCL on the bus</tspan></text>
+<text x="460" y="205" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="460" dy="0">stretch</tspan></text>
+<text x="410" y="16" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="middle" dominant-baseline="central"><tspan x="410" dy="0">controller releases</tspan></text>
+<text x="540" y="16" font-family="Carlito, Calibri, &#x27;Liberation Sans&#x27;, Arial, sans-serif" font-size="12" fill="#000000" text-anchor="start" dominant-baseline="central"><tspan x="540" dy="0">target releases</tspan></text>
+</svg>
