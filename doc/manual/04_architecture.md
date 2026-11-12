@@ -161,8 +161,9 @@ entries, and the speed register and the `active` signal are resynchronised into 
 
 `sys_clk_freq` is then the frequency of that domain, since it sets the SCL divisors.
 
-`add_i2c_master` passes the SoC `sys_clk_freq`: with another domain, build `LiteI2C` directly
-with the frequency of that domain. The FIFOs of the crossbar also queue up to 32 elements, so the
+With another domain, give its frequency to `add_i2c_master` with `clk_freq` (LiteX #2797; the
+method refuses a `clock_domain` other than `sys` without it), or build `LiteI2C` directly with that
+frequency. The FIFOs of the crossbar also queue up to 32 elements, so the
 FIFO contract of [The register master](#master-fifo) no longer blocks the PHY after one unread
 status element. The option is tested in simulation only ([status](#intro-status)).
 

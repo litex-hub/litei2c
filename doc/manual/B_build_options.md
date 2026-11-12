@@ -14,6 +14,7 @@ to the SoC under `name` ([Integration](#integration)).
 |----------------|-------------------|----------------------------------------------------------------|
 | `name` | `"i2cmaster"` | Name of the core, of its register bank and of its interrupt |
 | `pads` | `None` | Pads of the bus; `None` requests the platform pads called `name` |
+| `clk_freq` | `None` | Frequency of `clock_domain` in Hz; `None` uses `sys_clk_freq` and is refused with a `clock_domain` other than `sys` |
 | `**kwargs` | | Passed to `LiteI2C` (table below) |
 
 When the CPU has interrupts and an interrupt location named `name`, the method sets
