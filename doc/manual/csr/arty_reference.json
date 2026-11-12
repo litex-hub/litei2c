@@ -1,0 +1,195 @@
+{
+ "argv": [
+  "add_i2c_master()",
+  "with_irq=True",
+  "pads=pmodb:0,1"
+ ],
+ "banks": {
+  "i2cmaster": [
+   {
+    "access": "rw",
+    "description": "I2C speed mode (0: 100 kHz Standard-mode, 1: 400 kHz Fast-mode, 2: 1 MHz Fast-mode Plus, 3: reserved, 100 kHz), applied while ``active`` is 0.",
+    "fields": [],
+    "name": "phy_speed_mode",
+    "offset": 0,
+    "reset": 0,
+    "size": 2
+   },
+   {
+    "access": "rw",
+    "description": "1: request the bus for the register master (its crossbar port) and enable the PHY. Keep it at 1 for the whole transaction, chunks included.",
+    "fields": [],
+    "name": "master_active",
+    "offset": 4,
+    "reset": 0,
+    "size": 1
+   },
+   {
+    "access": "rw",
+    "description": "I2C transfer settings",
+    "fields": [
+     {
+      "description": "I2C tx Xfer length (in bytes). Set to a value greater than 4 to announce more data has to be transmitted.",
+      "name": "len_tx",
+      "offset": 0,
+      "reset": 0,
+      "size": 3,
+      "values": []
+     },
+     {
+      "description": "I2C rx Xfer length (in bytes). Set to a value greater than 4 to announce more data has to be received.",
+      "name": "len_rx",
+      "offset": 8,
+      "reset": 0,
+      "size": 3,
+      "values": []
+     },
+     {
+      "description": "I2C recover bus. If set, the I2C bus will be recovered.",
+      "name": "recover",
+      "offset": 16,
+      "reset": 0,
+      "size": 1,
+      "values": []
+     }
+    ],
+    "name": "master_settings",
+    "offset": 8,
+    "reset": 0,
+    "size": 17
+   },
+   {
+    "access": "rw",
+    "description": "7-bit address of the target, sent with the next element written to `master_rxtx`.",
+    "fields": [],
+    "name": "master_addr",
+    "offset": 12,
+    "reset": 0,
+    "size": 7
+   },
+   {
+    "access": "rw",
+    "description": "Read/write register (a read has a side effect: it pops the RX FIFO). Write: push one element into the TX FIFO, with up to 4 data bytes (the first byte on the bus in the most significant byte used) and the current `master_settings` and `master_addr`; check `tx_ready` first. Read: pop one status element from the RX FIFO; the last byte received is in bits 7:0.",
+    "fields": [],
+    "name": "master_rxtx",
+    "offset": 16,
+    "reset": null,
+    "size": 32
+   },
+   {
+    "access": "ro",
+    "description": "",
+    "fields": [
+     {
+      "description": "TX FIFO is not full.",
+      "name": "tx_ready",
+      "offset": 0,
+      "reset": 0,
+      "size": 1,
+      "values": []
+     },
+     {
+      "description": "RX FIFO is not empty.",
+      "name": "rx_ready",
+      "offset": 1,
+      "reset": 0,
+      "size": 1,
+      "values": []
+     },
+     {
+      "description": "Transfer not acknowledged (address or data NACK), also set with bus_error.",
+      "name": "nack",
+      "offset": 8,
+      "reset": 0,
+      "size": 1,
+      "values": []
+     },
+     {
+      "description": "I2C bus error on transfer.",
+      "name": "bus_error",
+      "offset": 9,
+      "reset": 0,
+      "size": 1,
+      "values": []
+     },
+     {
+      "description": "Another tx transfer is expected.",
+      "name": "tx_unfinished",
+      "offset": 16,
+      "reset": 0,
+      "size": 1,
+      "values": []
+     },
+     {
+      "description": "Another rx transfer is expected.",
+      "name": "rx_unfinished",
+      "offset": 17,
+      "reset": 0,
+      "size": 1,
+      "values": []
+     }
+    ],
+    "name": "master_status",
+    "offset": 20,
+    "reset": null,
+    "size": 18
+   },
+   {
+    "access": "ro",
+    "description": "This register contains the current raw level of the event trigger. Writes to this register have no effect.",
+    "fields": [
+     {
+      "description": "Level of the ``rx_ready`` event.",
+      "name": "rx_ready",
+      "offset": 0,
+      "reset": 0,
+      "size": 1,
+      "values": []
+     }
+    ],
+    "name": "master_ev_status",
+    "offset": 24,
+    "reset": null,
+    "size": 1
+   },
+   {
+    "access": "rw",
+    "description": "When an event occurs, the corresponding bit will be set in this register. To clear the Event, set the corresponding bit in this register.",
+    "fields": [
+     {
+      "description": "`1` if a `rx_ready` event occurred. This Event is triggered on **rising** edge.",
+      "name": "rx_ready",
+      "offset": 0,
+      "reset": 0,
+      "size": 1,
+      "values": []
+     }
+    ],
+    "name": "master_ev_pending",
+    "offset": 28,
+    "reset": null,
+    "size": 1
+   },
+   {
+    "access": "rw",
+    "description": "This register enables the corresponding events. Write a ``0`` to this register to disable individual events.",
+    "fields": [
+     {
+      "description": "Write a ``1`` to enable the ``rx_ready`` Event.",
+      "name": "rx_ready",
+      "offset": 0,
+      "reset": 0,
+      "size": 1,
+      "values": []
+     }
+    ],
+    "name": "master_ev_enable",
+    "offset": 32,
+    "reset": 0,
+    "size": 1
+   }
+  ]
+ },
+ "config": "arty_reference",
+ "target": "digilent_arty"
+}
