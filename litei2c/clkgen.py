@@ -1,5 +1,5 @@
 #
-# This file is part of LiteX.
+# This file is part of LiteI2C.
 #
 # Copyright (c) 2024 Fin Maaß <f.maass@vogl-electronic.com>
 # SPDX-License-Identifier: BSD-2-Clause
@@ -24,7 +24,7 @@ class LiteI2CClkGen(LiteXModule):
     Parameters
     ----------
     pads : Object
-        i2C pads description.
+        I2C pads description.
 
     i2c_speed_mode : Signal(2), in
         I2C speed mode.
@@ -38,10 +38,10 @@ class LiteI2CClkGen(LiteXModule):
         Clock enable input, output clock will be generated if set to 1, 0 resets the core.
 
     tx : Signal(), out
-        Outputs 1 when the clock is high and the I2C bus is in the transmit state.
+        Strobe in the middle of the SCL low time: SDA can change (transmit).
 
     rx : Signal(), out
-        Outputs 1 when the clock is low and the I2C bus is in the receive state.
+        Strobe in the SCL high time, once SCL is seen high: SDA is sampled (receive).
 
     keep_low : Signal(), in
         Forces the clock to be low, when the clock is disabled.

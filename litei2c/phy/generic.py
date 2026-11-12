@@ -43,10 +43,10 @@ class LiteI2CPHYCore(LiteXModule):
         Control stream.
 
     active : Signal(), in
-        Flash active signal.
+        Bus access enable: transfers start only while active is 1 (driven by the crossbar).
 
     speed_mode : CSRStorage
-        Register which holds a clock divisor value applied to clkgen.
+        I2C speed mode (0: 100 kHz, 1: 400 kHz, 2: 1 MHz), applied to clkgen while active is 0.
     """
     def __init__(self, pads, clock_domain, sys_clk_freq):
         self.source           = source = stream.Endpoint(i2c_phy2core_layout)
