@@ -1,0 +1,23 @@
+# Manual of this project: output name and chapters, in order (read by build.py; the pandoc defaults
+# files and the theme are generic, from the manual kit).
+name: litei2c_manual
+chapters:
+  - 00_front.md
+  - 01_introduction.md
+  - 02_i2c_primer.md
+  - 03_litex_i2c.md
+  - 04_architecture.md
+  - 05_phy.md
+  - 06_master.md
+  - 07_getting_started.md
+  - 08_integration.md
+  - 09_examples.md
+  - 10_boards.md
+  - 11_simulation.md
+  - 12_debugging.md
+  - Z_appendix.md
+  - A_registers.md
+  - B_build_options.md
+  - C_glossary.md
+  - D_performance.md
+  - E_maintenance.md
