@@ -22,8 +22,14 @@ class LiteI2CMaster(LiteXModule):
 
     Parameters
     ----------
-    fifo_depth : int
-        Depth of the internal TX/RX FIFO.
+    tx_fifo_depth : int
+        Depth of the internal TX FIFO (transfer requests).
+
+    rx_fifo_depth : int
+        Depth of the internal RX FIFO (transfer statuses and read data).
+
+    with_irq : bool
+        Adds an ``ev`` EventManager with an ``rx_ready`` event (RX FIFO not empty).
 
     Attributes
     ----------
@@ -44,8 +50,8 @@ class LiteI2CMaster(LiteXModule):
 
         self._active = CSRStorage()
         self._settings = CSRStorage(fields=[
-            CSRField("len_tx",   size=3, offset=0,  description="I2C tx Xfer length (in bytes). Set to a value greater then 4 to anounce more data has to be transmitted."),
-            CSRField("len_rx",   size=3, offset=8,  description="I2C rx Xfer length (in bytes). Set to a value greater then 4 to anounce more data has to be received."),
+            CSRField("len_tx",   size=3, offset=0,  description="I2C tx Xfer length (in bytes). Set to a value greater than 4 to announce more data has to be transmitted."),
+            CSRField("len_rx",   size=3, offset=8,  description="I2C rx Xfer length (in bytes). Set to a value greater than 4 to announce more data has to be received."),
             CSRField("recover",  size=1, offset=16, description="I2C recover bus. If set, the I2C bus will be recovered."),
         ], description="I2C transfer settings")
         self._addr = CSRStorage(self.source.addr.nbits)
@@ -53,7 +59,7 @@ class LiteI2CMaster(LiteXModule):
         self._status = CSRStatus(fields=[
             CSRField("tx_ready", size=1, offset=0, description="TX FIFO is not full."),
             CSRField("rx_ready", size=1, offset=1, description="RX FIFO is not empty."),
-            CSRField("nack", size=1, offset=8, description="Error on transfer." ),
+            CSRField("nack", size=1, offset=8, description="Transfer not acknowledged (address or data NACK), also set with bus_error."),
             CSRField("bus_error", size=1, offset=9, description="I2C bus error on transfer."),
             CSRField("tx_unfinished", size=1, offset=16, description="Another tx transfer is expected."),
             CSRField("rx_unfinished", size=1, offset=17, description="Another rx transfer is expected.")

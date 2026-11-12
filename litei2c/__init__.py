@@ -27,7 +27,6 @@ class LiteI2CCore(Module):
 
 
 class LiteI2C(LiteXModule):
-    autocsr_exclude = {"ev"}
     """I2C Controller wrapper.
 
     The ``LiteI2C`` class provides a wrapper that can instantiate ``LiteI2CMaster`` and connect it to the PHY.
@@ -53,7 +52,16 @@ class LiteI2C(LiteXModule):
     with_master : bool
         Enables register-operated I2C master controller.
 
+    i2c_master_tx_fifo_depth : int
+        Depth of the ``LiteI2CMaster`` TX FIFO (transfer requests).
+
+    i2c_master_rx_fifo_depth : int
+        Depth of the ``LiteI2CMaster`` RX FIFO (transfer statuses and read data).
+
+    with_irq : bool
+        Adds the ``LiteI2CMaster`` ``ev`` interrupt (RX FIFO not empty), exposed as ``self.ev``.
     """
+    autocsr_exclude = {"ev"}
 
     def __init__(self, sys_clk_freq, phy=None, pads=None, clock_domain="sys",
         with_master=True, i2c_master_tx_fifo_depth=1, i2c_master_rx_fifo_depth=1, with_irq = False):
