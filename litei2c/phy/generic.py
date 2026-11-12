@@ -32,7 +32,7 @@ class LiteI2CPHYCore(LiteXModule):
         The clock domain for the ``LiteI2CPHYCore``.
 
     sys_clk_freq : int
-        Frequency of the system clock.
+        Frequency of the ``clock_domain`` clock (SCL dividers).
 
     Attributes
     ----------
@@ -60,14 +60,18 @@ class LiteI2CPHYCore(LiteXModule):
 
         # # #
 
+        # The PHY runs in clock_domain (only the speed_mode CSR is in sys).
+        sync = getattr(self.sync, clock_domain)
+
         # Resynchronize CSR Clk Divisor to LiteI2C Clk Domain.
         self.submodules += ResyncReg(speed_mode.storage, i2c_speed_mode, clock_domain)
 
         # Only update speed mode when not active.
-        self.sync += If(~active, i2c_speed_mode_delayed.eq(i2c_speed_mode))
+        sync += If(~active, i2c_speed_mode_delayed.eq(i2c_speed_mode))
 
         # Clock Generator.
-        self.clkgen = clkgen = LiteI2CClkGen(pads, i2c_speed_mode_delayed, sys_clk_freq)
+        clkgen = LiteI2CClkGen(pads, i2c_speed_mode_delayed, sys_clk_freq)
+        self.clkgen = clkgen = ClockDomainsRenamer(clock_domain)(clkgen)
 
         nack              = Signal()
         bus_error         = Signal()
@@ -82,8 +86,9 @@ class LiteI2CPHYCore(LiteXModule):
             self.specials += SDRTristate(
                 io = pads.sda,
                 o  = Constant(0),       # I2C uses Pull-ups, only drive low.
-                oe = sda_oe & ~sda_o,   # Drive when oe and sda is low.
-                i  = sda_i,
+                oe  = sda_oe & ~sda_o,  # Drive when oe and sda is low.
+                i   = sda_i,
+                clk = ClockSignal(clock_domain),
             )
         else:
             self.comb += [
@@ -134,16 +139,16 @@ class LiteI2CPHYCore(LiteXModule):
         arbitration_lost  = Signal()
         self.comb += arbitration_lost.eq(clkgen.rx & arbitration_check & sda_oe & sda_o & ~sda_i)
 
-        self.sync += If(sr_out_load,
+        sync += If(sr_out_load,
             sr_out.eq(sink.data << (len(sink.data) - len_tx_capped * 8)),
         )
-        self.sync += If(sr_out_shift, sr_out.eq(Cat(C(0,1), sr_out[:-1])))
+        sync += If(sr_out_shift, sr_out.eq(Cat(C(0,1), sr_out[:-1])))
 
         # Data In Shift.
-        self.sync += If(sr_in_shift, sr_in.eq(Cat(sda_i, sr_in[:-1])))
+        sync += If(sr_in_shift, sr_in.eq(Cat(sda_i, sr_in[:-1])))
 
         # FSM.
-        self.fsm = fsm = FSM(reset_state="WAIT-DATA")
+        self.fsm = fsm = ClockDomainsRenamer(clock_domain)(FSM(reset_state="WAIT-DATA"))
         fsm.act("WAIT-DATA",
             NextValue(nack, 0),
             NextValue(bus_error, 0),
@@ -570,7 +575,7 @@ class LiteI2CPHYCore(LiteXModule):
 
         transfer_starting = Signal()
         self.comb += transfer_starting.eq(fsm.ongoing("WAIT-DATA") & active & sink.valid)
-        self.sync += If(transfer_starting,
+        sync += If(transfer_starting,
             timeout_error.eq(0),
             arbitration_error.eq(0),
         ).Else(
