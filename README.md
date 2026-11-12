@@ -46,6 +46,27 @@ To run all the unit tests:
 Tests can also be run individually:
   python3 -m unittest test.test_name -->
 
+[> Documentation
+----------------
+The **I2C Master Core manual** is the reference of LiteI2C: a nightly
+[PDF](https://github.com/litex-hub/litei2c/releases/download/manual-nightly/litei2c_manual.pdf)
+and [HTML page](https://github.com/litex-hub/litei2c/releases/download/manual-nightly/litei2c_manual.html)
+are published on the [manual-nightly](https://github.com/litex-hub/litei2c/releases/tag/manual-nightly)
+release. Sources in [doc/manual](doc/manual/README.md) (build: `python3 doc/manual/build.py`, outputs in
+`build/doc/`; pandoc, XeLaTeX and the fonts listed in the README of `doc/manual`):
+
+- **Understand**: [introduction](doc/manual/01_introduction.md), [I2C in a nutshell](doc/manual/02_i2c_primer.md)
+  (open drain, START/STOP, ACK/NACK, addressing, clock stretching, speed modes),
+  [I2C in LiteX](doc/manual/03_litex_i2c.md).
+- **The core**: [architecture](doc/manual/04_architecture.md), [PHY](doc/manual/05_phy.md),
+  [register master](doc/manual/06_master.md).
+- **Use it**: [getting started](doc/manual/07_getting_started.md), [integration](doc/manual/08_integration.md),
+  [examples](doc/manual/09_examples.md), [supported FPGAs and boards](doc/manual/10_boards.md),
+  [simulation and tests](doc/manual/11_simulation.md), [debugging](doc/manual/12_debugging.md).
+- **Appendices**: [registers](doc/manual/A_registers.md), [build options](doc/manual/B_build_options.md),
+  [glossary](doc/manual/C_glossary.md), [performance and resources](doc/manual/D_performance.md),
+  [maintaining this manual](doc/manual/E_maintenance.md) (for contributors).
+
 [> License
 ----------
 LiteI2C is released under the very permissive two-clause BSD license. Under
