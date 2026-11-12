@@ -54,7 +54,9 @@ class LiteI2CPHYCore(LiteXModule):
         self.active           = active = Signal()
         self._i2c_speed_mode  = i2c_speed_mode = Signal(2)
 
-        self.speed_mode      = speed_mode = CSRStorage(2, reset=0)
+        self.speed_mode      = speed_mode = CSRStorage(2, reset=0, description="I2C speed mode "
+            "(0: 100 kHz Standard-mode, 1: 400 kHz Fast-mode, 2: 1 MHz Fast-mode Plus, 3: reserved, "
+            "100 kHz), applied while ``active`` is 0.")
 
         i2c_speed_mode_delayed = Signal().like(i2c_speed_mode)
 
