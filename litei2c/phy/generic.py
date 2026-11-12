@@ -168,13 +168,26 @@ class LiteI2CPHYCore(LiteXModule):
             ),
         )
 
+        # START: SDA falls with SCL high (SCL kept high by suppress until the end of phase 3), SCL
+        # falls at the end of phase 0 in START-HOLD: START hold time (tHD;STA) of 3 phases or more.
         fsm.act("START",
             # Generate Clk.
             clkgen.en.eq(1),
+            clkgen.suppress.eq(1),
             sda_oe.eq(1),
             sda_o.eq(0),
             NextValue(sr_addr, sink.addr),
             NextValue(sr_cnt, 0),
+            If(clkgen.rx,
+                NextState("START-HOLD"),
+            ),
+        )
+
+        fsm.act("START-HOLD",
+            # Generate Clk.
+            clkgen.en.eq(1),
+            sda_oe.eq(1),
+            sda_o.eq(0),
             If(clkgen.tx,
                 If(sink.recover,
                     NextState("RECOVER-1"),
@@ -378,10 +391,23 @@ class LiteI2CPHYCore(LiteXModule):
             sda_o.eq(1),
             arbitration_check.eq(1),
             If(clkgen.rx,
-                NextState("START"),
+                NextState("REPEATED-START-SETUP"),
             ),
             If(arbitration_lost,
                 NextState("ARBITRATION-LOST"),
+            ),
+        )
+
+        # SDA released with SCL high from phase 3, SCL kept high by suppress in phase 1: repeated
+        # START setup time (tSU;STA) of 3 phases.
+        fsm.act("REPEATED-START-SETUP",
+            # Generate Clk.
+            clkgen.en.eq(1),
+            clkgen.suppress.eq(1),
+            sda_oe.eq(1),
+            sda_o.eq(1),
+            If(clkgen.tx,
+                NextState("START"),
             ),
         )
 
@@ -489,16 +515,27 @@ class LiteI2CPHYCore(LiteXModule):
             ),
         )
 
+        # STOP: SDA low while SCL rises (phase 3), SCL kept high by suppress in phase 1 of STOP-SETUP,
+        # SDA released at the end of phase 1: STOP setup time (tSU;STO) of 3 phases.
         fsm.act("STOP",
             # Generate Clk.
             clkgen.en.eq(1),
-
             sda_oe.eq(1),
-        
+            sda_o.eq(0),
             If(clkgen.rx,
+                NextState("STOP-SETUP"),
+            )
+        )
+
+        fsm.act("STOP-SETUP",
+            # Generate Clk.
+            clkgen.en.eq(1),
+            clkgen.suppress.eq(1),
+            sda_oe.eq(1),
+            If(clkgen.tx,
                 sda_o.eq(1),
                 NextState("XFER-END-SETTLE"),
-            ).Else( 
+            ).Else(
                 sda_o.eq(0),
             )
         )
@@ -509,6 +546,7 @@ class LiteI2CPHYCore(LiteXModule):
         # error instead of hanging the transaction. If a bus error has already
         # been latched, skip the extra wait and report it.
         fsm.act("XFER-END-SETTLE",
+            clkgen.suppress.eq(1), # SCL released (clkgen clk is low after STOP-SETUP phase 1).
             sda_oe.eq(1),
             sda_o.eq(1),
             NextState("XFER-END-WAIT-BUS"),

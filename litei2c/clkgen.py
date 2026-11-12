@@ -13,8 +13,24 @@ import math
 from litex.build.io import SDRTristate
 
 
+# SCL low/high minimums (tLOW, tHIGH) of the I2C-bus specification (NXP UM10204), in seconds.
+i2c_scl_timings = {
+    100000  : (4.7e-6, 4.0e-6),  # Standard-mode.
+    400000  : (1.3e-6, 0.6e-6),  # Fast-mode.
+    1000000 : (0.5e-6, 0.26e-6), # Fast-mode Plus.
+}
+
 def freq_to_div(sys_clk_freq, freq):
-    return math.ceil(sys_clk_freq / (4*freq)) - 1
+    # The SCL period is 4 phases of (div + 1) sys_clk cycles, SCL low and high last 2 phases each:
+    # a phase covers a quarter of the SCL period and half of the tLOW/tHIGH minimums (SCL can then
+    # be slightly below freq, ex 384.6 kHz in Fast-mode for the 1.3us tLOW).
+    t_low, t_high = i2c_scl_timings.get(freq, (0, 0))
+    cycles = max(
+        math.ceil(sys_clk_freq / (4*freq)),
+        math.ceil(round(sys_clk_freq * t_low  / 2, 6)),
+        math.ceil(round(sys_clk_freq * t_high / 2, 6)),
+    )
+    return cycles - 1
 
 class LiteI2CClkGen(LiteXModule):
     """I2C Clock generator
@@ -77,10 +93,13 @@ class LiteI2CClkGen(LiteXModule):
                 "default" : div.eq(freq_to_div(sys_clk_freq, 100000)),
             })]
 
+        # SCL is released in phase 3 but held low by a target (clock stretching) or still rising:
+        # the phase 3 counter restarts until SCL is seen high, so the SCL high time (phases 3 and 0)
+        # is counted from the SCL rise.
         self.comb += [
             tx.eq(en & (sub_cnt == 0b01) & (cnt == div)),
-            rx.eq(en & (sub_cnt == 0b11) & (cnt == div) & (scl_i | timeout)),
-            stretching.eq(en & (sub_cnt == 0b11) & (cnt == div) & ~scl_i),
+            rx.eq(en & (sub_cnt == 0b11) & (((cnt == div) & scl_i) | timeout)),
+            stretching.eq(en & (sub_cnt == 0b11) & ~scl_i),
             timeout.eq(stretching & (stretch_cnt == stretch_timeout_cycles)),
         ]
 
@@ -91,19 +110,17 @@ class LiteI2CClkGen(LiteXModule):
                 stretch_cnt.eq(0),
             ),
             If(en,
-                If(cnt < div,
+                If(stretching & ~timeout,
+                    cnt.eq(0),
+                ).Elif((cnt < div) & ~timeout,
                     cnt.eq(cnt+1),
                 ).Else(
-                    If(stretching & ~timeout,
-                        clk.eq(1),
+                    cnt.eq(0),
+                    clk.eq(sub_cnt[1]),
+                    If(sub_cnt < 3,
+                        sub_cnt.eq(sub_cnt+1),
                     ).Else(
-                        cnt.eq(0),
-                        clk.eq(sub_cnt[1]),
-                        If(sub_cnt < 3,
-                            sub_cnt.eq(sub_cnt+1),
-                        ).Else(
-                            sub_cnt.eq(0),
-                        )
+                        sub_cnt.eq(0),
                     )
                 )
             ).Else(
