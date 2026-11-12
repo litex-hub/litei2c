@@ -73,6 +73,8 @@ class LiteI2CClkGen(LiteXModule):
                 0 : div.eq(freq_to_div(sys_clk_freq, 100000)),  #  100 kHz (Standard Mode)
                 1 : div.eq(freq_to_div(sys_clk_freq, 400000)),  #  400 kHz (Fast Mode)
                 2 : div.eq(freq_to_div(sys_clk_freq, 1000000)), # 1000 kHz (Fast Mode Plus)
+                # Reserved (3): 100 kHz (Standard Mode), slowest/safest.
+                "default" : div.eq(freq_to_div(sys_clk_freq, 100000)),
             })]
 
         self.comb += [
