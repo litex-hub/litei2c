@@ -157,9 +157,9 @@ A controller supports clock stretching only if it reads SCL back. One that drive
 sends the next bit while the target is not ready, and the transfer is corrupted. A target that
 holds SCL low forever hangs the bus, so controllers usually bound the wait with a timeout.
 
-In LiteI2C, the clock generator reads SCL and waits while a target holds it low. A stretch
-longer than 25 ms, counted from the middle of the high time, ends the wait: the transaction goes
-on and the status reports a bus error.
+In LiteI2C, the clock generator reads SCL and waits while a target holds it low, then counts
+the high time from the rise it reads. A stretch longer than 25 ms, counted from the release of
+SCL by the PHY, ends the wait: the transaction goes on and the status reports a bus error.
 With split pads and no SCL input, the PHY cannot see a stretch and does not wait.
 
 ## Speeds and timing {#primer-timing}
@@ -193,9 +193,10 @@ The START hold time runs from the SDA edge of a START to the next falling SCL ed
 times run from a rising SCL edge to the SDA edge of the condition. tLOW is larger than tHIGH: a
 400 kHz clock with a 50 % duty cycle has a low phase of 1.25 µs, under the Fast-mode tLOW.
 
-In LiteI2C, the `speed_mode` register selects 100 kHz, 400 kHz or 1 MHz, divided from the
-system clock (or the clock of the PHY domain) with a 50 % duty cycle. The START hold, repeated
-START setup and STOP setup times are one quarter of the SCL period. [Bus timing](#phy-timing)
+In LiteI2C, the `speed_mode` register selects Standard-mode, Fast-mode or Fast-mode Plus. The
+PHY divides the system clock (or the clock of the PHY domain) into equal low and high times that
+also cover tLOW and tHIGH, which caps the Fast-mode SCL at 384.6 kHz. The START hold, repeated
+START setup and STOP setup times are three quarters of the SCL period. [Bus timing](#phy-timing)
 compares the resulting timing with this table.
 
 ## Arbitration and clock synchronisation {#primer-arbitration}
@@ -216,9 +217,8 @@ phase win: this is *clock synchronisation*, the same mechanism as clock stretchi
 In LiteI2C, the PHY reads SDA back while it sends the address, the R/W bit, the data bytes, the
 repeated START and the final NACK of a read. A read-back mismatch is reported as a bus error.
 
-After the loss, the PHY generates a STOP, which
-drives SDA; on a bus with another controller, this disturbs the winner's transaction
-([What it is not](#intro-limits)).
+After the loss, the PHY releases SDA and SCL at once and sends no STOP, so the transaction of
+the winner goes on. Software retries the element later ([Errors](#phy-errors)).
 
 ## Stuck bus and bus recovery {#primer-recovery}
 

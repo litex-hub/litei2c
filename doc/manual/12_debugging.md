@@ -117,15 +117,13 @@ the code; the [status table](#intro-status) gives the validation of each feature
 
 | Behaviour | Effect | Where |
 |--------------------------------|------------------------------------------------------|---------------------------|
-| START hold, repeated START setup and STOP setup last about one quarter of the SCL period | Below the minimums of the I2C specification in Standard-mode (START hold 2.5 µs for 4.0 µs) and Fast-mode Plus (250 ns for 260 ns); fix pending (PR #13) | `phy/generic.py`, `clkgen.py` |
-| SCL low and high each last half of the period | In Fast-mode, SCL low lasts 1.25 µs, below the minimum of 1.3 µs; fix pending (PR #13) | `clkgen.py` |
-| SCL high after a stretch lasts one quarter of the period | Shorter high time after a target releases SCL, and short repeated START and STOP setup when the stretch falls on them; fix pending (PR #13) | `clkgen.py` |
-| An arbitration loss leads to a STOP | The losing controller keeps driving SDA and SCL: only one controller per bus; fix pending (PR #15) | `phy/generic.py` |
+| Fast-mode SCL below 400 kHz | 384.6 kHz at most, for the 1.3 µs minimum of the SCL low time; lower with a slow SCL rise | `clkgen.py` |
+| Several controllers on one bus | An arbitration loss releases the bus and returns a bus error; not run on hardware | `phy/generic.py` |
 | No TX FIFO overflow protection | A write of `master_rxtx` while `tx_ready` is 0 is lost | `core/master.py` |
 | Data of a write status not cleared | It repeats the last bytes received | `phy/generic.py` |
 
-The speed mode scales these timings with the SCL period, so a lower speed does not bring them
-back to the specification. [Bus timing](#phy-timing) gives the timings of each mode.
+[Bus timing](#phy-timing) gives the timings of each mode, which meet the minimums of the I2C
+specification.
 
 ## Where to go next {#debug-next}
 
