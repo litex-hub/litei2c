@@ -37,7 +37,7 @@ python3 -m pytest -v
 python3 -m pytest -v test/test_phy.py -k recovery
 ```
 
-The suite has 29 tests and runs in under a minute. [Getting started](#getting-started) shows a run.
+The suite has 35 tests and runs in under a minute. [Getting started](#getting-started) shows a run.
 
 ## The test benches {#sim-bench}
 
@@ -72,19 +72,19 @@ transactions run at both levels.
 | Target NACK | 1 | `nack` without `bus_error` |
 | Bus recovery | 2 | Nine `tx` strobes counted; `nack` while SDA stays low |
 | Clock stretching | 1 | A stretch of 256 cycles delays the status |
-| Arbitration loss | 2 | SDA low while released during the address: `nack` and `bus_error` |
+| Arbitration loss | 3 | SDA low while released during the address: `nack` and `bus_error`; SDA and SCL no longer driven after the loss |
 | Master | 1 | `bus_error` field at bit 9 of `master_status` |
 | Transactions with a target | 8 | Probe, address NACK, write, read, write-then-read with repeated START, writes and reads over 4 bytes, read with an 80-cycle stretch: bus events and status data |
 | Register master | 1 | The same chunked write and write-then-read through the `LiteI2C` registers |
 | Clock domain | 1 | `clock_domain="i2c"`: transfers through the asynchronous FIFOs, SCL period from the i2c clock |
 | Speed modes | 2 | Divider of modes 0, 1 and 2; mode 3 decoded as Standard-mode |
+| Bus timing | 5 | START hold, repeated START and STOP setup, SCL low and high, bus free and data setup times against the UM10204 minimums, in the three speed modes and with clock stretching |
 
 The test names say the same in words, such as `test_slave_nack_does_not_report_bus_error` or
 `test_recovery_stuck_sda_reports_nack`; `python3 -m pytest --collect-only -q` lists them.
 
-The suite does not cover the stretch timeout, the crossbar with several ports or the interrupt,
-and checks the Fast-mode and Fast-mode Plus dividers but not their bus timing. These paths are
-described in Part II from the code.
+The suite does not cover the stretch timeout, the crossbar with several ports or the interrupt.
+These paths are described in Part II from the code.
 
 ## Looking at the waveforms {#sim-vcd}
 

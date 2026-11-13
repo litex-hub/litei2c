@@ -44,13 +44,13 @@ The run ends with every test passed:
 ```console
 $ python3 -m pytest -v
 [...]
-collecting ... collected 29 items
+collecting ... collected 35 items
 
-test/test_clkgen.py::TestLiteI2CClkGen::test_reserved_speed_mode_uses_standard_mode PASSED [  3%]
+test/test_clkgen.py::TestLiteI2CClkGen::test_reserved_speed_mode_uses_standard_mode PASSED [  2%]
 [...]
-test/test_target.py::TestLiteI2CTarget::test_write_then_read_with_repeated_start PASSED [100%]
+test/test_timing.py::TestLiteI2CTiming::test_standard_mode_timings_with_clock_stretching PASSED [100%]
 
-==================== 29 passed, 3 subtests passed in 22.08s ====================
+=================== 35 passed, 43 subtests passed in 49.88s ====================
 ```
 
 A failure at import time means that Migen or LiteX is missing or too old for the checkout: update
@@ -229,40 +229,40 @@ elements seen by the software, with the simulated time:
 $ python3 i2c_sim.py
       0.5 us  master: probe 0x50
       2.2 us  target: START
-     84.8 us  target: address 0x50 W ACK
-    102.0 us  target: STOP
-    104.2 us  master: status 0x00003, rxtx 0x00000000
-    104.2 us  master: probe 0x51
-    113.5 us  target: START
-    196.0 us  target: address 0x51 W NACK
-    213.2 us  target: STOP
-    215.5 us  master: status 0x00103, rxtx 0x00000000
-    215.5 us  master: write 0x10 (pointer), 0xaa, 0xbb, 0xcc, 0xdd, 0xee
-    224.8 us  target: START
-    307.2 us  target: address 0x50 W ACK
-    397.2 us  target: write 0x10
-    487.2 us  target: write 0xaa
-    577.2 us  target: write 0xbb
-    667.2 us  target: write 0xcc
-    680.8 us  master: status 0x10003, rxtx 0x00000000
-    765.0 us  target: write 0xdd
-    855.0 us  target: write 0xee
-    872.2 us  target: STOP
-    874.5 us  master: status 0x00003, rxtx 0x00000000
-    874.5 us  master: write 0x10 (pointer), read 5 bytes
-    883.8 us  target: START
-    966.2 us  target: address 0x50 W ACK
-   1056.2 us  target: write 0x10
-   1073.8 us  target: START
-   1156.2 us  target: address 0x50 R ACK
-   1251.2 us  target: read 0xaa, ACK
-   1341.2 us  target: read 0xbb, ACK
-   1431.2 us  target: read 0xcc, ACK
-   1521.2 us  target: read 0xdd, ACK
-   1529.8 us  master: status 0x20003, rxtx 0xaabbccdd
-   1619.0 us  target: read 0xee, NACK
-   1631.2 us  target: STOP
-   1633.5 us  master: status 0x00003, rxtx 0x000000ee
+     96.8 us  target: address 0x50 W ACK
+    119.5 us  target: STOP
+    121.8 us  master: status 0x00003, rxtx 0x00000000
+    121.8 us  master: probe 0x51
+    131.0 us  target: START
+    225.5 us  target: address 0x51 W NACK
+    248.2 us  target: STOP
+    250.5 us  master: status 0x00103, rxtx 0x00000000
+    250.5 us  master: write 0x10 (pointer), 0xaa, 0xbb, 0xcc, 0xdd, 0xee
+    259.8 us  target: START
+    354.2 us  target: address 0x50 W ACK
+    446.5 us  target: write 0x10
+    538.8 us  target: write 0xaa
+    631.0 us  target: write 0xbb
+    723.2 us  target: write 0xcc
+    737.2 us  master: status 0x10003, rxtx 0x00000000
+    823.5 us  target: write 0xdd
+    915.8 us  target: write 0xee
+    938.5 us  target: STOP
+    940.5 us  master: status 0x00003, rxtx 0x00000000
+    940.5 us  master: write 0x10 (pointer), read 5 bytes
+    950.0 us  target: START
+   1044.5 us  target: address 0x50 W ACK
+   1136.8 us  target: write 0x10
+   1159.8 us  target: START
+   1249.2 us  target: address 0x50 R ACK
+   1346.5 us  target: read 0xaa, ACK
+   1438.8 us  target: read 0xbb, ACK
+   1531.0 us  target: read 0xcc, ACK
+   1623.2 us  target: read 0xdd, ACK
+   1632.2 us  master: status 0x20003, rxtx 0xaabbccdd
+   1723.5 us  target: read 0xee, NACK
+   1741.2 us  target: STOP
+   1743.5 us  master: status 0x00003, rxtx 0x000000ee
 ```
 
 Read the output by blocks. The probe of `0x50` returns status `0x00003`: `tx_ready` and
@@ -272,9 +272,11 @@ target answered, and `bus_error` (bit 9) is clear because the bus itself is fine
 
 The 6-byte write shows the chunks of [Long transfers in chunks](#arch-chunks). After `0xcc`, the
 first status element has `tx_unfinished` (bit 16) set, and the transaction goes on with `0xdd`
-without a new START. Bytes follow each other every 90 µs, nine SCL periods, except between `0xcc`
-and `0xdd`: the few extra microseconds are the time the software takes to read the status
-element and push the next element, while the PHY holds SCL low.
+without a new START. Bytes follow each other every 92.25 µs, nine SCL periods of 41 cycles of the
+4 MHz clock: 40 from the divisor and one for the SCL level that the PHY reads back
+([Clock generator](#phy-clkgen)). Between `0xcc` and `0xdd`, the few extra microseconds are the
+time the software takes to read the status element and push the next element, while the PHY
+holds SCL low.
 
 The write-then-read sends the pointer `0x10`, then a repeated START and the address with R. The
 first status element returns 4 bytes, `0xaabbccdd`, with `rx_unfinished` (bit 17) set; the second

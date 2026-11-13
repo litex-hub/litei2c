@@ -56,8 +56,27 @@ expects its register layout.
 
 The history of the repository records one hardware result: writes of more than 4 bytes lost data
 until commit `0e47e29` ("Fix multiple sink.ready in TX-PRE-WAIT"), after which the reporter of the
-issue wrote 16 bytes in one transaction on hardware. The [status table](#intro-status) gives the
-maintainers' status of each feature.
+issue wrote 16 bytes in one transaction on hardware.
+
+The pull request that brought the bus timing to the I2C specification records a second one, on a
+LambdaConcept ECPIX-5 (Lattice ECP5) with a 50 MHz PHY clock. The two I2C buses of the board
+were tested: the TI TUSB322 USB-C controller and the ITE IT6613 HDMI transmitter. On each bus, in
+Standard-mode and in Fast-mode, 500 register reads with a repeated START returned the expected
+bytes with 0 errors, and an absent address returned a NACK.
+
+A logic analyzer in the FPGA sampled SCL and SDA at the pins every 20 ns. The table gives the
+measured timings against the minimums of the specification:
+
+| Timing | Standard-mode | Minimum | Fast-mode | Minimum |
+|--------------------------------|----------------:|--------:|----------------:|--------:|
+| START hold, repeated START setup, STOP setup | 7.52 to 7.60 µs | 4.0 to 4.7 µs | 1.98 to 2.04 µs | 0.6 µs |
+| SCL low, tLOW | 4.96 to 5.04 µs | 4.7 µs | 1.34 to 1.36 µs | 1.3 µs |
+| SCL high, tHIGH | 5.04 µs | 4.0 µs | 1.36 µs | 0.6 µs |
+| Data setup, tSU;DAT | 2.48 µs | 0.25 µs | 0.66 µs | 0.1 µs |
+| SCL frequency, mean | 98 kHz | | 362 to 365 kHz | |
+
+The test covers neither Fast-mode Plus nor a bus with two controllers. The
+[status table](#intro-status) gives the maintainers' status of each feature.
 
 ## Adding LiteI2C to a board {#boards-new}
 

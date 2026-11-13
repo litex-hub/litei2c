@@ -62,12 +62,12 @@ board.](intro_soc.svg)
 | Bus | One I2C bus per instance, LiteI2C as the only controller; open-drain SCL and SDA through `SDRTristate`, or split pads |
 | Speed | Standard-mode (100 kHz), Fast-mode (400 kHz) and Fast-mode Plus (1 MHz), selected at run time by a register; SCL derived from the PHY clock (`sys` by default) |
 | Transactions | 7-bit addresses; address probe, write, read and write-then-read with a repeated START; up to 4 bytes per element, longer transfers in chunks |
-| Robustness | Bus free check before START, clock stretching with a 25 ms timeout, arbitration loss detection, bus release check after STOP, bus recovery with ten clock pulses |
+| Robustness | Bus free check before START, clock stretching with a 25 ms timeout, arbitration loss detection with release of the bus, bus release check after STOP, bus recovery with ten clock pulses |
 | Status | One status element per element: NACK, bus error, chunk flags, received bytes |
 | Master | Registers for software, TX and RX FIFOs of configurable depth, optional interrupt on received status |
 | Sharing | Crossbar between the master and gateware users, round-robin arbitration; PHY in its own clock domain as an option |
 | Integration | LiteX library through `add_i2c_master` |
-| Verification | Simulation tests in `test/`: PHY errors, transfers with a simulated target, speed codes, clock domain |
+| Verification | Simulation tests in `test/`: PHY errors, transfers with a simulated target, bus timing, speed codes, clock domain |
 
 ## Status {#intro-status}
 
@@ -82,12 +82,14 @@ part in simulation.
 | Reads | Reads and write-then-read, up to 4 bytes | Validated on hardware | Yes |
 | Long reads | Reads over 4 bytes, in chunks | In development | Yes |
 | Standard-mode | Speed codes 0 and 3 (reserved), 100 kHz | Validated on hardware | Yes |
-| Fast-mode, Fast-mode Plus | Speed codes 1 and 2 | In development | Divider only |
+| Fast-mode | Speed code 1, 384.6 kHz at most | Validated on hardware | Yes |
+| Fast-mode Plus | Speed code 2, 1 MHz | In development | Yes |
+| Bus timing | START, STOP, SCL low and high times of the I2C specification | Validated on hardware (Standard-mode, Fast-mode) | Yes |
 | Master | Registers, FIFOs, status polling | Validated on hardware | Yes |
 | Interrupt | `with_irq=True` | In development | No |
 | Clock stretching | Detection and 25 ms timeout | In development | Yes |
 | Bus errors and recovery | Stuck lines, `recover` bit | In development | Yes |
-| Arbitration loss | Detection on a multi-controller bus | In development | Yes |
+| Arbitration loss | Detection and release of the bus on a multi-controller bus | In development | Yes |
 | Crossbar | Several ports, gateware users | In development | No |
 | Clock domain | PHY in a `clock_domain` other than `sys` | In development | Yes |
 
@@ -121,19 +123,16 @@ the I2C specification:
   at or below which the PHY runs ([Clock generator](#phy-clkgen)).
 - No SMBus features: no packet error checking, no alert line, no bus timeout other than the
   clock stretching timeout.
-- Single-controller buses only. The PHY detects an arbitration loss and reports it as a bus
-  error, but it then generates a STOP instead of releasing the bus to the winner (fix pending,
-  PR #15).
+- Not validated on a bus with several controllers. The PHY detects an arbitration loss, releases
+  SDA and SCL without a STOP and reports a bus error, and software retries; no hardware record
+  covers such a bus ([Errors](#phy-errors)).
 - No LiteX software: the LiteX BIOS commands, the boot-time init tables and the Linux driver all
   target the bit-banged core. Software drives LiteI2C through its registers
   ([Examples](#examples)).
 
-The bus timing of the PHY is below some minimums of the I2C specification (fix pending, PR #13).
-The START hold, repeated START setup and STOP setup times are one quarter of the SCL period: too
-short in Standard-mode and Fast-mode Plus. The Fast-mode SCL low time is 1.25 µs, under 1.3 µs.
-
-After a clock stretch, the SCL high time is one quarter period. [Bus timing](#phy-timing) gives
-the values.
+The bus timing of the PHY meets the minimums of the I2C specification in the three speed modes.
+The price is a Fast-mode SCL of 384.6 kHz at most, for its 1.3 µs low time.
+[Bus timing](#phy-timing) gives the values.
 
 ## Repository layout {#intro-layout}
 

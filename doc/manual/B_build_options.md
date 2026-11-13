@@ -52,7 +52,7 @@ The speed register of the PHY selects one of three dividers, computed at build t
 | `phy_speed_mode` | Mode | Nominal SCL |
 |------------------|---------------------|-------------|
 | 0 (reset) | Standard-mode | 100 kHz |
-| 1 | Fast-mode | 400 kHz |
+| 1 | Fast-mode | 400 kHz (384.6 kHz at most, for tLOW) |
 | 2 | Fast-mode Plus | 1 MHz |
 | 3 | Reserved, decoded as Standard-mode | 100 kHz |
 

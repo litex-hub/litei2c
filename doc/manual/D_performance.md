@@ -3,26 +3,33 @@
 This appendix gives the SCL frequencies, the duration of each kind of transaction, the payload
 throughput and a resource estimate of LiteI2C. Each number is labelled: *computed* from the
 formulas of the code, *computed in simulation* with the script given here, or *synthesis
-estimate* from Yosys. The repository records no measurement on hardware.
+estimate* from Yosys. One measurement on hardware is recorded
+([Hardware records](#boards-records)).
 
 ## SCL frequency {#perf-scl}
 
-The clock generator divides the system clock by `4 x (div + 1)`, with `div = ceil(sys / (4 x SCL)) -
-1` for the nominal SCL of the mode ([The PHY](#phy)). SCL is therefore at most the nominal
-frequency, and lower when the system clock is not a multiple of four times it. With `clock_domain`,
-read the clock of that domain for the system clock in this appendix.
+The clock generator divides the system clock into quarter phases of `div + 1` cycles, four per
+SCL period. A quarter phase covers a quarter of the nominal period of the mode and half of its
+tLOW and tHIGH minimums ([The PHY](#phy)). SCL is therefore at most the frequency of the table,
+`sys / (4 x (div + 1))`. With `clock_domain`, read the clock of that domain for the system clock
+in this appendix.
 
 | System clock | Standard-mode (div) | Fast-mode (div) | Fast-mode Plus (div) |
 |--------------|---------------------|---------------------|----------------------|
-| 25 MHz | 99.2 kHz (62) | 390.6 kHz (15) | 892.9 kHz (6) |
-| 48 MHz | 100.0 kHz (119) | 400.0 kHz (29) | 1000.0 kHz (11) |
-| 50 MHz | 100.0 kHz (124) | 390.6 kHz (31) | 961.5 kHz (12) |
-| 100 MHz | 100.0 kHz (249) | 396.8 kHz (62) | 1000.0 kHz (24) |
-| 125 MHz | 99.8 kHz (312) | 395.6 kHz (78) | 976.6 kHz (31) |
+| 25 MHz | 99.2 kHz (62) | 367.6 kHz (16) | 892.9 kHz (6) |
+| 48 MHz | 100.0 kHz (119) | 375.0 kHz (31) | 1000.0 kHz (11) |
+| 50 MHz | 100.0 kHz (124) | 378.8 kHz (32) | 961.5 kHz (12) |
+| 100 MHz | 100.0 kHz (249) | 384.6 kHz (64) | 1000.0 kHz (24) |
+| 125 MHz | 99.8 kHz (312) | 381.1 kHz (81) | 976.6 kHz (31) |
 
-Computed. The stretch timeout is `ceil(sys / 40)` system cycles, 25 ms at any system clock. The
-system clock must be at least four times the SCL of the fastest mode used: below that, the divider
-is 0 and SCL runs at a quarter of the system clock.
+Computed. Fast-mode stays under 400 kHz: its 1.3 µs SCL low time is more than half of a 2.5 µs
+period. On a bus, each period also lasts the few system cycles SCL takes to read high after its
+release, through the input register and the rise time: 98 kHz and about 363 kHz were measured
+at a 50 MHz system clock ([Hardware records](#boards-records)).
+
+The stretch timeout is `ceil(sys / 40)` system cycles, 25 ms at any system clock. The system
+clock must be at least four times the SCL of the fastest mode used: below that, the divider is 0
+and SCL runs at a quarter of the system clock.
 
 ## Duration of a transaction {#perf-duration}
 
@@ -31,23 +38,24 @@ and the bus free time that the PHY waits after the STOP. The table counts the SC
 element presented to the PHY to the PHY ready for the next one, on an ideal bus whose target
 acknowledges every byte.
 
-| Transaction | SCL periods | At 100 kHz | At 400 kHz | At 1 MHz |
-|-------------------------------------|-------------|------------|------------|----------|
-| Address probe | 11.0 | 110 µs | 27.5 µs | 11 µs |
-| Write of 1 byte | 20.0 | 200 µs | 50 µs | 20 µs |
-| Write of 2 bytes (one register) | 29.0 | 290 µs | 72.5 µs | 29 µs |
-| Write of 4 bytes | 47.0 | 470 µs | 117.5 µs | 47 µs |
-| Write of 8 bytes, two elements | 83.6 | 836 µs | 209 µs | 83.6 µs |
-| Read of 1 byte | 20.0 | 200 µs | 50 µs | 20 µs |
-| Read of 4 bytes | 47.0 | 470 µs | 117.5 µs | 47 µs |
-| Write of 1 byte, read of 1 (register read) | 39.0 | 390 µs | 97.5 µs | 39 µs |
+| Transaction | SCL periods | Standard-mode | Fast-mode | Fast-mode Plus |
+|-----------------------------|-------------|------------------|-------------|-------------|
+| Address probe | 12.5 | 125 µs | 32.5 µs | 12.5 µs |
+| Write of 1 byte | 21.5 | 215 µs | 55.9 µs | 21.5 µs |
+| Write of 2 bytes (one register) | 30.5 | 305 µs | 79.3 µs | 30.5 µs |
+| Write of 4 bytes | 48.5 | 485 µs | 126.1 µs | 48.5 µs |
+| Write of 8 bytes, two elements | 85.1 | 851 µs | 221.1 µs | 85.1 µs |
+| Read of 1 byte | 21.5 | 215 µs | 55.9 µs | 21.5 µs |
+| Read of 4 bytes | 48.5 | 485 µs | 126.1 µs | 48.5 µs |
+| Write of 1 byte, read of 1 (register read) | 41.5 | 415 µs | 107.9 µs | 41.5 µs |
 
 Computed in simulation, at a 16 MHz system clock in Standard-mode, where an SCL period is 160
-system cycles; the times assume the nominal SCL of each mode. A transaction of `n` bytes takes `11
-+ 9 x n` periods; the repeated START of a register read adds 10 periods, for the second address
-byte and the repeated START. Between two elements of one transaction, the PHY waits with SCL low:
-half a period here, where the next element is ready at once, plus the time software takes to pop
-the status and push the next element on a real system.
+system cycles. The times assume the SCL periods of a 100 MHz system clock: 10 µs, 2.6 µs and
+1 µs. A transaction of `n` bytes takes `12.5 + 9 x n` periods; the repeated START of a register
+read adds 11 periods, for the second address byte and the repeated START. Between two elements
+of one transaction, the PHY waits with SCL low: half a period here, where the next element is
+ready at once, plus the time software takes to pop the status and push the next element on a
+real system.
 
 The script below produced the table. Save it at the root of the repository and run `python3
 perf.py`; it prints the system cycles and the SCL periods of each case.
@@ -114,27 +122,27 @@ for name, elements in cases.items():
 ```
 
 ```console
-address probe     1766 cycles  11.04 SCL periods
-write 1 byte      3206 cycles  20.04 SCL periods
-write 2 bytes     4646 cycles  29.04 SCL periods
-write 4 bytes     7526 cycles  47.04 SCL periods
-write 8 bytes    13368 cycles  83.55 SCL periods
-read 1 byte       3206 cycles  20.04 SCL periods
-read 4 bytes      7526 cycles  47.04 SCL periods
-write 1, read 1   6246 cycles  39.04 SCL periods
+address probe     2006 cycles  12.54 SCL periods
+write 1 byte      3446 cycles  21.54 SCL periods
+write 2 bytes     4886 cycles  30.54 SCL periods
+write 4 bytes     7766 cycles  48.54 SCL periods
+write 8 bytes    13608 cycles  85.05 SCL periods
+read 1 byte       3446 cycles  21.54 SCL periods
+read 4 bytes      7766 cycles  48.54 SCL periods
+write 1, read 1   6646 cycles  41.54 SCL periods
 ```
 
 ## Payload throughput {#perf-throughput}
 
 A long transfer moves one byte every nine SCL periods once its address is sent. Short
 transactions pay the address, the START and the STOP every time. The table gives both bounds in
-kB/s (10^3 bytes per second) at the nominal SCL of each mode.
+kB/s (10^3 bytes per second) at the SCL of a 100 MHz system clock: 100 kHz, 384.6 kHz and 1 MHz.
 
 | Transfer | Standard-mode | Fast-mode | Fast-mode Plus |
 |---------------------------------------------|-----------------|-----------|----------------|
-| Long transfer, bytes after the address | 11.1 kB/s | 44.4 kB/s | 111 kB/s |
-| Transactions of 4 bytes, back to back | 8.5 kB/s | 34.0 kB/s | 85.1 kB/s |
-| One register write per transaction (1 data byte) | 3.4 kB/s | 13.8 kB/s | 34.5 kB/s |
+| Long transfer, bytes after the address | 11.1 kB/s | 42.7 kB/s | 111 kB/s |
+| Transactions of 4 bytes, back to back | 8.2 kB/s | 31.7 kB/s | 82.5 kB/s |
+| One register write per transaction (1 data byte) | 3.3 kB/s | 12.6 kB/s | 32.8 kB/s |
 
 Computed from the durations above. Software lowers these figures: each element costs a few
 register accesses, and with FIFOs of depth 1 the master holds one element at a time. Deeper FIFOs
@@ -148,8 +156,8 @@ no interrupt, with its register bank, for a 100 MHz system clock.
 
 | Family (Yosys flow) | LUTs | Flip-flops | Carry cells |
 |------------------------------|------------------|------------|---------------|
-| Lattice iCE40 (`synth_ice40`) | 436 `SB_LUT4` | 277 | 55 `SB_CARRY` |
-| Xilinx 7-Series (`synth_xilinx`) | 290 (LUT2 to LUT6) | 277 | 14 `CARRY4` |
+| Lattice iCE40 (`synth_ice40`) | 470 `SB_LUT4` | 278 | 55 `SB_CARRY` |
+| Xilinx 7-Series (`synth_xilinx`) | 301 (LUT2 to LUT6) | 278 | 15 `CARRY4` |
 
 Synthesis estimate, Yosys 0.70, without place and route. The design is written to Verilog by
 the script below, then synthesized:
